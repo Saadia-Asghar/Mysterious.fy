@@ -12,7 +12,14 @@ Documentation for implementation is on the `dev` branch. `main` remains the prev
 4. [fyp-specification.md](fyp-specification.md) for the full academic scope
 5. [milestones.md](milestones.md) for what is in scope now
 
-Work from `dev`. Create `feature/<name>` from `dev` only when a change should stay isolated. Merge that branch back to `dev` only. Do not open feature work directly against `main`.
+Work locally, run the tests, then integrate on `dev`. Create `feature/<name>` from `dev` only when a change should stay isolated. Merge that branch back to `dev` only. Do not open feature work directly against `main`.
+
+The local app is the integration service:
+
+```bash
+.venv/bin/python -m pytest
+.venv/bin/uvicorn app.main:app --app-dir integration-api --host 127.0.0.1 --port 8000
+```
 
 ## Ownership from the specification
 

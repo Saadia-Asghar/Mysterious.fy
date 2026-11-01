@@ -88,6 +88,23 @@ This documentation is published on `dev`. Do not merge `dev` into `main` until a
 
 Do not commit passwords, API keys, tokens, or real device addresses. Use placeholders and environment variables.
 
+## Run the integration service locally
+
+This is the first runnable piece. It stores devices, telemetry, and events on this machine. Zabbix, Grafana, and osTicket are not started.
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r integration-api/requirements.txt
+.venv/bin/python -m pytest
+.venv/bin/uvicorn app.main:app --app-dir integration-api --host 127.0.0.1 --port 8000
+```
+
+Open http://127.0.0.1:8000 to register a device. API details are at http://127.0.0.1:8000/docs. The database file `data/nms.sqlite` stays local.
+
+See [integration-api/README.md](integration-api/README.md).
+
 ## Current status
 
-Architecture documentation is on `dev`. Application code, Docker services, Zabbix, Grafana, osTicket, the integration API, models, and self-healing are not implemented yet. The next implementation step is Milestone 0 / Milestone 1 only after the team agrees to start it. See [docs/milestones.md](docs/milestones.md).
+Architecture documentation and the local integration service are on `dev`. Tests cover profile loading, device registration, telemetry, and events. Docker, Zabbix, Grafana, osTicket, correlation, RCA, and self-healing are not implemented yet. See [docs/milestones.md](docs/milestones.md).
+
+Work is tested locally, then pushed to `dev`. `main` changes only after an approved merge.

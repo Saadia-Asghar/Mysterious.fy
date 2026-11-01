@@ -6,9 +6,9 @@ Build in this order. Finish and review one milestone before starting the next. `
 
 | Item | State |
 |---|---|
-| Specification and architecture on `dev` | Published in this documentation commit |
-| Application implementation | Not started |
-| Docker, Zabbix, Grafana, osTicket | Not installed by this commit |
+| Specification and architecture on `dev` | Published |
+| Local integration service | Devices, telemetry, and events. Tested with pytest. |
+| Docker, Zabbix, Grafana, osTicket | Not installed |
 | Known-good implementation tag | None |
 | `main` | Unchanged until an approved merge |
 

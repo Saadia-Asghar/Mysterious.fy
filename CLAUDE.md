@@ -36,7 +36,7 @@ Lifecycle: DETECT, NORMALIZE, ANALYZE, CORRELATE, DIAGNOSE, DECIDE, ACT / ESCALA
 
 ## Directory map
 
-Documentation currently lives at the repository root and under `docs/`. Implementation directories are created when the milestone that fills them is approved. Expected later layout:
+The local integration service is `integration-api/`. Profiles are `device-profiles/`. Tests are `tests/`. Expected later layout:
 
 ```text
 docker/  monitoring-zabbix/  visualization-grafana/  ticketing-osticket/
@@ -56,7 +56,7 @@ test-environment/{simulators,fault-scenarios}/  tests/  scripts/
 
 ## Current milestone
 
-Documentation publication on `dev`. No implementation milestone is in progress. No `*-good` tag exists. Last shared commit before this documentation was `71e3809` on `main`.
+Local integration service: devices, telemetry, and events validated against device profiles. No `*-good` tag. Zabbix, Grafana, osTicket, intelligence, and remediation are not started. `main` is still the pre-documentation commit until a merge is approved.
 
 ## Data contracts
 
@@ -68,7 +68,14 @@ Details and examples: [docs/data-contracts.md](docs/data-contracts.md). Do not c
 
 ## Commands
 
-No runtime is installed for this documentation commit. Do not add development commands here until a milestone introduces them.
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r integration-api/requirements.txt
+.venv/bin/python -m pytest
+.venv/bin/uvicorn app.main:app --app-dir integration-api --host 127.0.0.1 --port 8000
+```
+
+Run pytest before pushing to `dev`. Do not commit `.venv/` or `data/`.
 
 ## Constraints an agent must not silently change
 
