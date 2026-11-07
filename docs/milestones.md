@@ -8,7 +8,7 @@ Build in this order. Finish and review one milestone before starting the next. `
 |---|---|
 | M0 foundation | Complete on `dev`, awaiting review. Checks: `tests/test_foundation.py` |
 | Local integration service | Devices, telemetry, and events. Tested with pytest. |
-| Docker, Zabbix, Grafana, osTicket | Not installed |
+| M1 core services | Compose written and statically tested. Not yet run (no Docker on first dev machine). |
 | Known-good implementation tag | None |
 | `main` | Unchanged until an approved merge |
 

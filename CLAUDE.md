@@ -56,7 +56,7 @@ test-environment/{simulators,fault-scenarios}/  tests/  scripts/
 
 ## Current milestone
 
-M0 (foundation) complete on `dev`, awaiting review: full directory layout with per-component READMEs, local integration service, and `tests/test_foundation.py` acceptance checks. No `*-good` tag until a person approves. Next: M1 core services (Zabbix, Grafana, osTicket, custom database via Docker). `main` is still the pre-documentation commit until a merge is approved.
+M0 foundation complete. M1 core services: `docker/docker-compose.yml` written and statically tested (`tests/test_compose.py`) but NOT yet run, because the first dev machine has no Docker. Next: run the stack on a machine with Docker and confirm the M1 acceptance list in `docker/README.md`, then M2. The user merges `dev` into `main` themselves once the application works; agents never merge or tag. `main` is still the initial commit.
 
 ## Data contracts
 
