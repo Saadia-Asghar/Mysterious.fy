@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NMS integration service</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: sans-serif; margin: 0 auto; max-width: 960px; padding: 24px; line-height: 1.4; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.2rem; }
+    p, li { max-width: 70ch; }
+    section { margin-top: 28px; }
+    form, pre { display: grid; gap: 8px; }
+    label { display: grid; gap: 4px; font-size: 0.9rem; }
+    input, select, button { font: inherit; padding: 6px 8px; }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+    .error { color: #9b1c1c; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #8884; text-align: left; padding: 6px; vertical-align: top; }
+  </style>
+</head>
+<body>
+  <h1>NMS integration service</h1>
+  <p id="health">Loading local service status.</p>
+  <p>This page registers devices and stores normalized telemetry and events. Zabbix, Grafana, osTicket, correlation, and remediation are not part of this local slice. Use an authorized address or the placeholder <code>&lt;authorized-address&gt;</code>.</p>
+
+  <section>
+    <h2>Register a device</h2>
+    <form id="device-form">
+      <div class="row">
+        <label>Profile
+          <select id="profile_id" name="profile_id" required></select>
+        </label>
+        <label>Device ID <input name="device_id" required placeholder="CAM-001"></label>
+        <label>Name <input name="name" required placeholder="Entrance camera"></label>
+        <label>Device type <input id="device_type" name="device_type" required readonly></label>
+        <label>Organization <input name="organization_id" required placeholder="ORG-1"></label>
+        <label>Site <input name="site_id" required placeholder="SITE-1"></label>
+        <label>Zone <input name="zone_id" required placeholder="ZONE-1"></label>
+        <label>Management address <input name="management_address" required value="&lt;authorized-address&gt;"></label>
+        <label>Responsible team <input name="responsible_team" required placeholder="network_team"></label>
+      </div>
+      <button type="submit">Save device</button>
+      <p id="device-error" class="error"></p>
+    </form>
+  </section>
+
+  <section>
+    <h2>Record telemetry</h2>
+    <form id="telemetry-form">
+      <div class="row">
+        <label>Device
+          <select id="telemetry_device_id" name="device_id" required></select>
+        </label>
+        <label>Metric
+          <select id="metric_name" name="metric_name" required></select>
+        </label>
+        <label>Value <input name="value" type="number" step="any" required></label>
+        <label>Unit <input id="unit" name="unit" required readonly></label>
+        <label>Source <input name="source" value="manual" required></label>
+      </div>
+      <button type="submit">Save telemetry</button>
+      <p id="telemetry-error" class="error"></p>
+    </form>
+  </section>
+
+  <section>
+    <h2>Record an event</h2>
+    <form id="event-form">
+      <div class="row">
+        <label>Device
+          <select id="event_device_id" name="device_id" required></select>
+        </label>
+        <label>Event type
+          <select id="event_type" name="event_type" required></select>
+        </label>
+        <label>Severity
+          <select name="severity">
+            <option>information</option>
+            <option>warning</option>
+            <option selected>average</option>
+            <option>high</option>
+            <option>disaster</option>
+            <option>not_classified</option>
+          </select>
+        </label>
+        <label>Source <input name="source" value="manual" required></label>
+      </div>
+      <button type="submit">Save event</button>
+      <p id="event-error" class="error"></p>
+    </form>
+  </section>
+
+  <section>
+    <h2>Devices</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Profile</th><th>Site / zone</th><th>Policy</th></tr></thead>
+      <tbody id="devices"></tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Recent events</h2>
+    <table>
+      <thead><tr><th>Event</th><th>Device</th><th>Type</th><th>Severity</th><th>Started</th></tr></thead>
+      <tbody id="events"></tbody>
+    </table>
+  </section>
+
+  <script>
+    const profilesById = new Map();
+    const devicesById = new Map();
+
+    function option(value, label) {
+      const el = document.createElement("option");
+      el.value = value;
+      el.textContent = label;
+      return el;
+    }
+
+    async function api(path, options) {
+      const response = await fetch(path, options);
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = body.detail;
+        const message = typeof detail === "string" ? detail : JSON.stringify(detail || body);
+        throw new Error(message);
+      }
+      return body;
+    }
+
+    function selectedProfile() {
+      return profilesById.get(document.querySelector("#profile_id").value);
+    }
+
+    function fillMetrics(deviceId, metricSelect, unitInput) {
+      const device = devicesById.get(deviceId);
+      const profile = device ? profilesById.get(device.profile_id) : null;
+      const previous = metricSelect.value;
+      metricSelect.replaceChildren();
+      (profile ? profile.metrics : []).forEach((metric) => {
+        metricSelect.appendChild(option(metric.metric_name, metric.metric_name));
+      });
+      if (previous && [...metricSelect.options].some((item) => item.value === previous)) {
+        metricSelect.value = previous;
+      }
+      syncUnit(unitInput, profile, metricSelect.value);
+    }
+
+    function syncUnit(unitInput, profile, metricName) {
+      const metric = profile && profile.metrics.find((item) => item.metric_name === metricName);
+      unitInput.value = metric ? metric.unit : "";
+    }
+
+    function fillTriggers(deviceId, triggerSelect) {
+      const device = devicesById.get(deviceId);
+      const profile = device ? profilesById.get(device.profile_id) : null;
+      triggerSelect.replaceChildren();
+      (profile ? profile.triggers : []).forEach((trigger) => triggerSelect.appendChild(option(trigger, trigger)));
+    }
+
+    async function refresh() {
+      const [health, profiles, devices, events] = await Promise.all([
+        api("/health"),
+        api("/profiles"),
+        api("/devices"),
+        api("/events"),
+      ]);
+      document.querySelector("#health").textContent =
+        `Local service is ${health.status}. ${health.profiles} profile(s), ${health.devices} device(s).`;
+
+      profilesById.clear();
+      const profileSelect = document.querySelector("#profile_id");
+      const previous = profileSelect.value;
+      profileSelect.replaceChildren();
+      profiles.forEach((profile) => {
+        profilesById.set(profile.profile_id, profile);
+        profileSelect.appendChild(option(profile.profile_id, `${profile.profile_id} (${profile.device_type})`));
+      });
+      if (previous) profileSelect.value = previous;
+      const profile = selectedProfile();
+      document.querySelector("#device_type").value = profile ? profile.device_type : "";
+
+      devicesById.clear();
+      const deviceBody = document.querySelector("#devices");
+      deviceBody.replaceChildren();
+      const deviceSelects = ["#telemetry_device_id", "#event_device_id"].map((id) => document.querySelector(id));
+      deviceSelects.forEach((select) => select.replaceChildren());
+      devices.forEach((device) => {
+        devicesById.set(device.device_id, device);
+        const row = document.createElement("tr");
+        [device.device_id, device.name, device.profile_id, `${device.site_id} / ${device.zone_id}`, device.automation_policy]
+          .forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+          });
+        deviceBody.appendChild(row);
+        deviceSelects.forEach((select) => select.appendChild(option(device.device_id, device.device_id)));
+      });
+
+      const eventBody = document.querySelector("#events");
+      eventBody.replaceChildren();
+      events.slice(-20).reverse().forEach((event) => {
+        const row = document.createElement("tr");
+        [event.event_id, event.device_id, event.event_type, event.severity, event.started_at].forEach((value) => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        });
+        eventBody.appendChild(row);
+      });
+
+      fillMetrics(
+        document.querySelector("#telemetry_device_id").value,
+        document.querySelector("#metric_name"),
+        document.querySelector("#unit"),
+      );
+      fillTriggers(document.querySelector("#event_device_id").value, document.querySelector("#event_type"));
+    }
+
+    document.querySelector("#profile_id").addEventListener("change", () => {
+      const profile = selectedProfile();
+      document.querySelector("#device_type").value = profile ? profile.device_type : "";
+    });
+    document.querySelector("#telemetry_device_id").addEventListener("change", (event) => {
+      fillMetrics(event.target.value, document.querySelector("#metric_name"), document.querySelector("#unit"));
+    });
+    document.querySelector("#metric_name").addEventListener("change", () => {
+      const device = devicesById.get(document.querySelector("#telemetry_device_id").value);
+      const profile = device ? profilesById.get(device.profile_id) : null;
+      syncUnit(document.querySelector("#unit"), profile, document.querySelector("#metric_name").value);
+    });
+    document.querySelector("#event_device_id").addEventListener("change", (event) => {
+      fillTriggers(event.target.value, document.querySelector("#event_type"));
+    });
+
+    document.querySelector("#device-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const error = document.querySelector("#device-error");
+      error.textContent = "";
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      data.enabled = true;
+      try {
+        await api("/devices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+        event.target.reset();
+        await refresh();
+      } catch (err) {
+        error.textContent = err.message;
+      }
+    });
+
+    document.querySelector("#telemetry-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const error = document.querySelector("#telemetry-error");
+      error.textContent = "";
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      data.value = Number(data.value);
+      data.timestamp = new Date().toISOString();
+      try {
+        await api("/telemetry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+        await refresh();
+      } catch (err) {
+        error.textContent = err.message;
+      }
+    });
+
+    document.querySelector("#event-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const error = document.querySelector("#event-error");
+      error.textContent = "";
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      data.started_at = new Date().toISOString();
+      try {
+        await api("/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+        await refresh();
+      } catch (err) {
+        error.textContent = err.message;
+      }
+    });
+
+    refresh().catch((err) => {
+      document.querySelector("#health").textContent = err.message;
+    });
+  </script>
+</body>
+</html>

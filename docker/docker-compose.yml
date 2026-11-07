@@ -1,0 +1,100 @@
+# M1 core services. Run from repo root:  docker compose -f docker/docker-compose.yml --env-file .env up -d
+# Each product keeps its own database; the custom NMS database is separate (see CLAUDE.md).
+name: nms-fyp
+
+services:
+  zabbix-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+    volumes: [zabbix-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ZABBIX_DB_USER} -d zabbix"]
+      interval: 10s
+      retries: 10
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0-latest
+    depends_on:
+      zabbix-db: {condition: service_healthy}
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+    ports: ["10051:10051"]
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
+    depends_on: [zabbix-server]
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+      PHP_TZ: ${TZ}
+    ports: ["${ZABBIX_WEB_PORT}:8080"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app
+      ZABBIX_API_URL: http://zabbix-web:8080/api_jsonrpc.php
+      ZABBIX_API_TOKEN: ${ZABBIX_API_TOKEN}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../visualization-grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../visualization-grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["${GRAFANA_PORT}:3000"]
+    depends_on: [zabbix-web]
+
+  osticket-db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_DATABASE: osticket
+      MARIADB_USER: ${OSTICKET_DB_USER}
+      MARIADB_PASSWORD: ${OSTICKET_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${OSTICKET_DB_ROOT_PASSWORD}
+    volumes: [osticket-db:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      retries: 10
+
+  osticket:
+    # Community image; confirm it during M1 verification. Override with OSTICKET_IMAGE if needed.
+    image: ${OSTICKET_IMAGE}
+    depends_on:
+      osticket-db: {condition: service_healthy}
+    environment:
+      DB_HOST: osticket-db
+      DB_NAME: osticket
+      DB_USER: ${OSTICKET_DB_USER}
+      DB_PASS: ${OSTICKET_DB_PASSWORD}
+      ADMIN_EMAIL: ${OSTICKET_ADMIN_EMAIL}
+      ADMIN_PASS: ${OSTICKET_ADMIN_PASSWORD}
+    ports: ["${OSTICKET_PORT}:80"]
+
+  nms-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nms
+      POSTGRES_USER: ${NMS_DB_USER}
+      POSTGRES_PASSWORD: ${NMS_DB_PASSWORD}
+    volumes: [nms-db:/var/lib/postgresql/data]
+    ports: ["${NMS_DB_PORT}:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NMS_DB_USER} -d nms"]
+      interval: 10s
+      retries: 10
+
+volumes:
+  zabbix-db:
+  grafana-data:
+  osticket-db:
+  nms-db:
