@@ -70,9 +70,10 @@ Details and examples: [docs/data-contracts.md](docs/data-contracts.md). Do not c
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r integration-api/requirements.txt
+.venv/bin/pip install -r integration-api/requirements.txt -r requirements-dev.txt
 .venv/bin/python -m pytest
 .venv/bin/uvicorn app.main:app --app-dir integration-api --host 127.0.0.1 --port 8000
+docker compose -f docker/docker-compose.yml --env-file .env up -d   # M1 services (see docker/README.md)
 ```
 
 Run pytest before pushing to `dev`. Do not commit `.venv/` or `data/`.
