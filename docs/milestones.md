@@ -6,7 +6,7 @@ Build in this order. Finish and review one milestone before starting the next. `
 
 | Item | State |
 |---|---|
-| Specification and architecture on `dev` | Published |
+| M0 foundation | Complete on `dev`, awaiting review. Checks: `tests/test_foundation.py` |
 | Local integration service | Devices, telemetry, and events. Tested with pytest. |
 | Docker, Zabbix, Grafana, osTicket | Not installed |
 | Known-good implementation tag | None |

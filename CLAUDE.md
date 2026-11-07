@@ -56,7 +56,7 @@ test-environment/{simulators,fault-scenarios}/  tests/  scripts/
 
 ## Current milestone
 
-Local integration service: devices, telemetry, and events validated against device profiles. No `*-good` tag. Zabbix, Grafana, osTicket, intelligence, and remediation are not started. `main` is still the pre-documentation commit until a merge is approved.
+M0 (foundation) complete on `dev`, awaiting review: full directory layout with per-component READMEs, local integration service, and `tests/test_foundation.py` acceptance checks. No `*-good` tag until a person approves. Next: M1 core services (Zabbix, Grafana, osTicket, custom database via Docker). `main` is still the pre-documentation commit until a merge is approved.
 
 ## Data contracts
 
