@@ -56,7 +56,7 @@ test-environment/{simulators,fault-scenarios}/  tests/  scripts/
 
 ## Current milestone
 
-M0 foundation complete. M1 core services: `docker/docker-compose.yml` written and statically tested (`tests/test_compose.py`) but NOT yet run, because the first dev machine has no Docker. Next: run the stack on a machine with Docker and confirm the M1 acceptance list in `docker/README.md`, then M2. The user merges `dev` into `main` themselves once the application works; agents never merge or tag. `main` is still the initial commit.
+M0 foundation complete. M1 core services: `docker/docker-compose.yml` written and statically tested (`tests/test_compose.py`) but NOT yet run, because the first dev machine has no Docker. M5 integration side done ahead of M1–M4: `POST /integrations/zabbix/events` normalizes Zabbix problems to `ZBX-<eventid>` events (`integration-api/app/zabbix.py`, `tests/test_zabbix_events.py`, media type in `monitoring-zabbix/media-types/`). Blocked: Docker cannot run on the dev PC until hardware virtualization is enabled. Next once Docker runs: verify M1, then M2–M4, then wire Zabbix to M5 end to end. The user merges `dev` into `main` themselves once the application works; agents never merge or tag. `main` is still the initial commit.
 
 ## Data contracts
 

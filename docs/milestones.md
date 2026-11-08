@@ -7,7 +7,7 @@ Build in this order. Finish and review one milestone before starting the next. `
 | Item | State |
 |---|---|
 | M0 foundation | Complete on `dev`, awaiting review. Checks: `tests/test_foundation.py` |
-| Local integration service | Devices, telemetry, and events. Tested with pytest. |
+| Local integration service | Devices, telemetry, events. M5 Zabbix webhook route `/integrations/zabbix/events` unit-tested; live Zabbix not yet connected. |
 | M1 core services | Compose written and statically tested. Not yet run (no Docker on first dev machine). |
 | Known-good implementation tag | None |
 | `main` | Unchanged until an approved merge |

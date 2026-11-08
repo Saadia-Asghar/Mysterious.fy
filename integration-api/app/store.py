@@ -125,6 +125,11 @@ class Store:
             except sqlite3.IntegrityError as exc:
                 raise EventAlreadyExists(event.event_id) from exc
 
+    def get_event(self, event_id: str) -> Event | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM events WHERE event_id = ?", (event_id,)).fetchone()
+        return self._event(row) if row else None
+
     def list_events(self) -> list[Event]:
         with self._connect() as conn:
             rows = conn.execute("SELECT * FROM events ORDER BY started_at, event_id").fetchall()

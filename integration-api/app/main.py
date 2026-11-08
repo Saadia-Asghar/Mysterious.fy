@@ -1,14 +1,17 @@
+import hmac
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from app import zabbix
 from app.profiles import ProfileCatalog
 from app.schemas import Device, DeviceCreate, DeviceProfile, Event, EventCreate, Telemetry, TelemetryCreate
 from app.settings import Settings
 from app.store import DeviceAlreadyExists, EventAlreadyExists, Store, new_event_id
+from app.zabbix import ZabbixWebhook
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -91,6 +94,37 @@ def create_app(settings: Settings) -> FastAPI:
 
     @app.post("/events", response_model=Event, status_code=201)
     def create_event(body: EventCreate) -> Event:
+        return _ingest_event(body)
+
+    @app.post("/integrations/zabbix/events")
+    def zabbix_event(
+        body: ZabbixWebhook,
+        response: Response,
+        x_nms_webhook_token: str | None = Header(default=None),
+    ) -> dict[str, object]:
+        if settings.zabbix_webhook_token and not hmac.compare_digest(
+            x_nms_webhook_token or "", settings.zabbix_webhook_token
+        ):
+            raise HTTPException(status_code=401, detail="Invalid webhook token")
+        event_id = zabbix.event_id_for(body.eventid)
+        if body.value == "0":
+            # Recovery. Stored and used for verification from M12 onward; acknowledged for now.
+            response.status_code = 202
+            return {"status": "recovery_received", "event_id": event_id}
+        try:
+            normalized = zabbix.normalize(body)
+        except zabbix.UnknownSeverity:
+            raise HTTPException(status_code=422, detail=f"Unknown Zabbix severity {body.severity}") from None
+        existing = store.get_event(event_id)
+        if existing is not None:
+            # Zabbix retries deliveries; the same problem must not create a second event.
+            response.status_code = 200
+            return {"status": "duplicate", "event": existing.model_dump(mode="json")}
+        event = _ingest_event(normalized)
+        response.status_code = 201
+        return {"status": "created", "event": event.model_dump(mode="json")}
+
+    def _ingest_event(body: EventCreate) -> Event:
         device = _require_device(store, body.device_id)
         profile = profiles.get(device.profile_id)
         if profile is None or body.event_type not in profile.triggers:
