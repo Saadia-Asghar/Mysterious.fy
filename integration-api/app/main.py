@@ -16,6 +16,7 @@ from app.schemas import (
     DeviceProfile,
     Event,
     EventCreate,
+    AnomalyOut,
     IncidentAnalysis,
     StoredIncident,
     SyncResult,
@@ -218,6 +219,25 @@ def create_app(settings: Settings, ticket_provider: OsTicketClient | None = None
         if not 1 <= window_seconds <= 3600:
             raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
         return analysis.analyze(store.list_events(), store.list_edges(), window_seconds)
+
+    @app.get("/intelligence/anomalies", response_model=list[AnomalyOut])
+    def anomalies(
+        device_id: str | None = None,
+        metric_name: str | None = None,
+        only_anomalies: bool = False,
+        window: int = 30,
+        threshold: float = 3.5,
+    ) -> list[AnomalyOut]:
+        """Robust z-score anomaly scores for stored telemetry (model robust_zscore_v1)."""
+        if not 10 <= window <= 1000 or not 0 < threshold <= 20:
+            raise HTTPException(status_code=422, detail="window must be 10-1000 and threshold 0-20")
+        if device_id is not None:
+            _require_device(store, device_id)
+        rows = store.list_telemetry(device_id)
+        if metric_name is not None:
+            rows = [r for r in rows if r.metric_name == metric_name]
+        results = analysis.score_anomalies(rows, window=window, threshold=threshold)
+        return [r for r in results if r.is_anomaly] if only_anomalies else results
 
     @app.post("/incidents/sync", response_model=SyncResult)
     def sync_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS) -> SyncResult:

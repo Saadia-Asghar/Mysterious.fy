@@ -224,6 +224,8 @@ The specification requires a monitoring check after every automated action and a
 
 - Persisted incidents (`GET /incidents`) add `updated_at`, `ticket` (Ticket mapping + `created_at`) and `ticket_error`. Re-analysis refreshes events, devices and RCA but never changes `status`.
 
+- `GET /intelligence/anomalies` returns the Anomaly result fields (`device_id`, `anomaly_score`, `model_version`=`robust_zscore_v1`, `timestamp`) plus `metric_name`, `value`, `baseline_median`, `robust_z`, `is_anomaly`, `direction`.
+
 ## Rules
 
 - Producers and consumers use these names.

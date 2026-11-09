@@ -6,19 +6,21 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.append(str(_REPO_ROOT))
 
-from intelligence import correlation, rca  # noqa: E402
+from intelligence import anomaly, correlation, rca  # noqa: E402
 from intelligence.topology import Topology, TopologyCycle  # noqa: E402
 
 from app.schemas import (  # noqa: E402
+    AnomalyOut,
     CorrelationOut,
     Event,
     IncidentAnalysis,
     RankedCauseOut,
     RcaOut,
+    Telemetry,
     TopologyEdge,
 )
 
-__all__ = ["DEFAULT_WINDOW_SECONDS", "TopologyCycle", "analyze", "build_topology", "severity_at_least", "ticket_text"]
+__all__ = ["DEFAULT_WINDOW_SECONDS", "TopologyCycle", "analyze", "build_topology", "score_anomalies", "severity_at_least", "ticket_text"]
 
 DEFAULT_WINDOW_SECONDS = correlation.DEFAULT_WINDOW_SECONDS
 SEVERITY_ORDER = ["not_classified", "information", "warning", "average", "high", "disaster"]
@@ -78,3 +80,15 @@ def ticket_text(inc: IncidentAnalysis) -> tuple[str, str]:
         lines.append(f"  {i}. {cause.device_id}  score {cause.score:.2f}  - {cause.reason}")
     lines += ["", "Opened automatically by the NMS integration service. Automation policy: human handling."]
     return subject, "\n".join(lines)
+
+
+def score_anomalies(telemetry: list[Telemetry], window: int, threshold: float) -> list[AnomalyOut]:
+    """Score every (device, metric) series separately, oldest first."""
+    series: dict[tuple[str, str], list[anomaly.Reading]] = {}
+    for t in telemetry:
+        series.setdefault((t.device_id, t.metric_name), []).append(anomaly.Reading(t.timestamp, t.value))
+    out: list[AnomalyOut] = []
+    for (device_id, metric_name), readings in sorted(series.items()):
+        for r in anomaly.score_series(readings, window=window, threshold=threshold):
+            out.append(AnomalyOut(device_id=device_id, metric_name=metric_name, **r.__dict__))
+    return out

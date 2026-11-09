@@ -128,3 +128,16 @@ class SyncResult(BaseModel):
     tickets_created: list[TicketMapping]
     ticket_errors: dict[str, str]
     ticketing: Literal["enabled", "disabled"]
+
+
+class AnomalyOut(BaseModel):
+    device_id: str
+    metric_name: str
+    timestamp: datetime
+    value: float
+    baseline_median: float
+    robust_z: float
+    anomaly_score: float
+    is_anomaly: bool
+    direction: Literal["high", "low", "normal"]
+    model_version: str
