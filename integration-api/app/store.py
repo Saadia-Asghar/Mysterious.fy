@@ -14,6 +14,7 @@ from app.schemas import (
     TelemetryCreate,
     TicketMapping,
     TopologyEdge,
+    VerificationResult,
 )
 
 
@@ -88,6 +89,12 @@ class Store:
                     execution_id TEXT PRIMARY KEY,
                     incident_id TEXT NOT NULL REFERENCES incidents(incident_id),
                     status TEXT NOT NULL,
+                    body_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS verifications (
+                    verification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    execution_id TEXT NOT NULL REFERENCES executions(execution_id),
+                    incident_id TEXT NOT NULL,
                     body_json TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS topology_edges (
@@ -324,6 +331,25 @@ class Store:
         with self._connect() as conn:
             rows = conn.execute(query + " ORDER BY rowid", params).fetchall()
         return [Execution.model_validate_json(r[0]) for r in rows]
+
+    def insert_verification(self, v: VerificationResult) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO verifications (execution_id, incident_id, body_json) VALUES (?, ?, ?)",
+                (v.execution_id, v.incident_id, v.model_dump_json()),
+            )
+
+    def list_verifications(self, incident_id: str | None = None, execution_id: str | None = None) -> list[VerificationResult]:
+        query, params = "SELECT body_json FROM verifications WHERE 1=1", []
+        if incident_id is not None:
+            query += " AND incident_id = ?"
+            params.append(incident_id)
+        if execution_id is not None:
+            query += " AND execution_id = ?"
+            params.append(execution_id)
+        with self._connect() as conn:
+            rows = conn.execute(query + " ORDER BY verification_id", params).fetchall()
+        return [VerificationResult.model_validate_json(r[0]) for r in rows]
 
     @staticmethod
     def _device(row: sqlite3.Row) -> Device:

@@ -172,3 +172,20 @@ class Execution(BaseModel):
     detail: str | None = None
     approved_by: str | None = None
     timestamps: ExecutionTimestamps
+
+
+class VerificationResult(BaseModel):
+    execution_id: str
+    incident_id: str
+    device_id: str
+    source: Literal["zabbix"] = "zabbix"
+    healthy: bool
+    observed_at: datetime
+    summary: str
+
+
+class VerifyOutcome(BaseModel):
+    verification: VerificationResult
+    incident_status: str
+    ticket: TicketMapping | None = None
+    ticket_error: str | None = None

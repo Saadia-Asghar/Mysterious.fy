@@ -17,6 +17,9 @@ class Settings:
     osticket_api_key: str | None = None
     osticket_reporter_email: str | None = None
     ticket_min_severity: str = "warning"
+    zabbix_api_url: str | None = None
+    zabbix_api_token: str | None = None
+    verify_timeout_seconds: int = 300
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -31,4 +34,7 @@ class Settings:
             osticket_api_key=os.environ.get("NMS_OSTICKET_API_KEY") or None,
             osticket_reporter_email=os.environ.get("NMS_OSTICKET_REPORTER_EMAIL") or None,
             ticket_min_severity=os.environ.get("NMS_TICKET_MIN_SEVERITY", "warning"),
+            zabbix_api_url=os.environ.get("NMS_ZABBIX_API_URL") or None,
+            zabbix_api_token=os.environ.get("NMS_ZABBIX_API_TOKEN") or None,
+            verify_timeout_seconds=int(os.environ.get("NMS_VERIFY_TIMEOUT_SECONDS", "300")),
         )

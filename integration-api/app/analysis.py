@@ -59,7 +59,7 @@ def severity_at_least(severity: str, minimum: str) -> bool:
     return SEVERITY_ORDER.index(severity) >= SEVERITY_ORDER.index(minimum)
 
 
-def ticket_text(inc: IncidentAnalysis) -> tuple[str, str]:
+def ticket_text(inc: IncidentAnalysis, note: str | None = None) -> tuple[str, str]:
     """Human-readable ticket subject and body. Everything an engineer needs to start."""
     top = inc.rca.ranked_causes[0] if inc.rca.ranked_causes else None
     subject = f"[NMS {inc.severity.upper()}] {inc.incident_id}: {len(inc.affected_devices)} device(s) affected"
@@ -78,6 +78,8 @@ def ticket_text(inc: IncidentAnalysis) -> tuple[str, str]:
     ]
     for i, cause in enumerate(inc.rca.ranked_causes[:5], 1):
         lines.append(f"  {i}. {cause.device_id}  score {cause.score:.2f}  - {cause.reason}")
+    if note:
+        lines += ["", note]
     lines += ["", "Opened automatically by the NMS integration service. Automation policy: human handling."]
     return subject, "\n".join(lines)
 

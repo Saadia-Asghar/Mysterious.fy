@@ -57,7 +57,7 @@ def test_recovery_is_acknowledged_not_stored(tmp_path: Path) -> None:
         client.post("/devices", json=CAMERA)
         r = client.post(URL, json={**PROBLEM, "value": "0"})
         assert r.status_code == 202
-        assert r.json() == {"status": "recovery_received", "event_id": "ZBX-4711"}
+        assert r.json() == {"status": "recovery_received", "event_id": "ZBX-4711", "verified": []}
         assert client.get("/events").json() == []
 
 

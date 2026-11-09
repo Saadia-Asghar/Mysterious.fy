@@ -12,7 +12,10 @@ from uuid import uuid4
 import httpx
 
 from app import analysis, remediation, zabbix
+from collections.abc import Callable
+
 from app.osticket import OsTicketClient, TicketError
+from app.zabbix_api import ZabbixApiClient, ZabbixApiError
 from app.profiles import ProfileCatalog
 from app.schemas import (
     Device,
@@ -32,6 +35,8 @@ from app.schemas import (
     Telemetry,
     TelemetryCreate,
     TopologyEdge,
+    VerificationResult,
+    VerifyOutcome,
 )
 from app.settings import Settings
 from app.store import DeviceAlreadyExists, EdgeAlreadyExists, EventAlreadyExists, Store, new_event_id
@@ -44,7 +49,11 @@ def create_app(
     settings: Settings,
     ticket_provider: OsTicketClient | None = None,
     remediation_transport: httpx.BaseTransport | None = None,
+    zabbix_api: ZabbixApiClient | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> FastAPI:
+    if zabbix_api is None and settings.zabbix_api_url and settings.zabbix_api_token:
+        zabbix_api = ZabbixApiClient(url=settings.zabbix_api_url, token=settings.zabbix_api_token)
     playbooks = remediation.PlaybookCatalog(settings.playbooks_dir)
     store = Store(settings.database_path)
     if ticket_provider is None and settings.osticket_url and settings.osticket_api_key:
@@ -144,9 +153,16 @@ def create_app(
             raise HTTPException(status_code=401, detail="Invalid webhook token")
         event_id = zabbix.event_id_for(body.eventid)
         if body.value == "0":
-            # Recovery. Stored and used for verification from M12 onward; acknowledged for now.
+            # Recovery: Zabbix says this host's problem cleared. Counts as a healthy observation
+            # for any incident waiting on verification of an action on this device.
             response.status_code = 202
-            return {"status": "recovery_received", "event_id": event_id}
+            verified = []
+            for execution in _awaiting_verification(device_id=body.host):
+                outcome = _record_verification(
+                    execution, True, f"Zabbix recovery event {event_id} for {body.host}"
+                )
+                verified.append({"incident_id": execution.incident_id, "incident_status": outcome.incident_status})
+            return {"status": "recovery_received", "event_id": event_id, "verified": verified}
         try:
             normalized = zabbix.normalize(body)
         except zabbix.UnknownSeverity:
@@ -259,7 +275,7 @@ def create_app(
         for each incident at or above the ticket severity that does not have one yet."""
         if not 1 <= window_seconds <= 3600:
             raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
-        now = datetime.now(timezone.utc)
+        now = _now()
         created, updated = [], []
         tickets: list[TicketMapping] = []
         errors: dict[str, str] = {}
@@ -269,20 +285,11 @@ def create_app(
                 continue
             if not analysis.severity_at_least(inc.severity, settings.ticket_min_severity):
                 continue
-            try:
-                number = ticket_provider.create_ticket(*analysis.ticket_text(inc))
-            except TicketError as exc:
-                errors[inc.incident_id] = str(exc)
-                store.set_ticket_error(inc.incident_id, str(exc))
-                continue
-            mapping = TicketMapping(
-                incident_id=inc.incident_id,
-                provider=ticket_provider.provider,
-                external_ticket_id=number,
-                created_at=now,
-            )
-            store.insert_ticket_mapping(mapping)
-            tickets.append(mapping)
+            result = _open_ticket(inc)
+            if isinstance(result, str):
+                errors[inc.incident_id] = result
+            else:
+                tickets.append(result)
         return SyncResult(
             incidents_created=created,
             incidents_updated=updated,
@@ -292,7 +299,100 @@ def create_app(
         )
 
     def _now() -> datetime:
-        return datetime.now(timezone.utc)
+        return clock() if clock else datetime.now(timezone.utc)
+
+    def _open_ticket(inc, note: str | None = None) -> TicketMapping | str:
+        """Open one osTicket ticket for an incident. Returns the mapping, or an error string."""
+        try:
+            number = ticket_provider.create_ticket(*analysis.ticket_text(inc, note))
+        except TicketError as exc:
+            store.set_ticket_error(inc.incident_id, str(exc))
+            return str(exc)
+        mapping = TicketMapping(
+            incident_id=inc.incident_id,
+            provider=ticket_provider.provider,
+            external_ticket_id=number,
+            created_at=_now(),
+        )
+        store.insert_ticket_mapping(mapping)
+        return mapping
+
+    def _awaiting_verification(device_id: str | None = None) -> list[Execution]:
+        """Latest completed execution of every incident in `verifying`."""
+        waiting = []
+        for inc in store.list_incidents():
+            if inc.status != "verifying":
+                continue
+            done = [e for e in store.list_executions(inc.incident_id) if e.status == "completed"]
+            if done and (device_id is None or done[-1].device_id == device_id):
+                waiting.append(done[-1])
+        return waiting
+
+    def _record_verification(execution: Execution, healthy: bool, summary: str) -> VerifyOutcome:
+        """Store one monitoring observation and move the incident:
+        healthy -> resolved; unhealthy after the deadline -> escalated (+ human ticket);
+        unhealthy before the deadline -> stays verifying (Zabbix may still be catching up)."""
+        now = _now()
+        result = VerificationResult(
+            execution_id=execution.execution_id,
+            incident_id=execution.incident_id,
+            device_id=execution.device_id,
+            healthy=healthy,
+            observed_at=now,
+            summary=summary,
+        )
+        store.insert_verification(result)
+        status = "verifying"
+        ticket, ticket_error = None, None
+        finished = execution.timestamps.finished_at or now
+        if healthy:
+            status = "resolved"
+        elif (now - finished).total_seconds() >= settings.verify_timeout_seconds:
+            status = "escalated"
+        store.set_incident_status(execution.incident_id, status, now)
+        if status == "escalated" and ticket_provider is not None:
+            ticket = store.get_ticket_mapping(execution.incident_id)
+            if ticket is None:
+                inc = store.get_incident(execution.incident_id)
+                note = (
+                    f"Automated remediation {execution.execution_id} ({execution.playbook_id}) completed, "
+                    f"but Zabbix still reports {execution.device_id} unhealthy after "
+                    f"{settings.verify_timeout_seconds}s. Human action required."
+                )
+                opened = _open_ticket(inc, note)
+                ticket, ticket_error = (None, opened) if isinstance(opened, str) else (opened, None)
+        return VerifyOutcome(verification=result, incident_status=status, ticket=ticket, ticket_error=ticket_error)
+
+    def _verify_with_zabbix(execution: Execution) -> VerifyOutcome:
+        if zabbix_api is None:
+            raise HTTPException(status_code=503, detail="Zabbix API is not configured (NMS_ZABBIX_API_URL/TOKEN)")
+        try:
+            problems = zabbix_api.open_problems(execution.device_id)
+        except ZabbixApiError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from None
+        if problems:
+            names = ", ".join(p.get("name", "?") for p in problems[:3])
+            return _record_verification(execution, False, f"Zabbix reports {len(problems)} open problem(s): {names}")
+        return _record_verification(execution, True, "Zabbix reports no open problems")
+
+    @app.post("/executions/{execution_id}/verify", response_model=VerifyOutcome)
+    def verify_execution(execution_id: str) -> VerifyOutcome:
+        execution = store.get_execution(execution_id)
+        if execution is None:
+            raise HTTPException(status_code=404, detail=f"Unknown execution_id {execution_id}")
+        waiting = {e.execution_id for e in _awaiting_verification()}
+        if execution_id not in waiting:
+            raise HTTPException(status_code=409, detail="Execution is not awaiting verification")
+        return _verify_with_zabbix(execution)
+
+    @app.post("/verification/sweep", response_model=list[VerifyOutcome])
+    def verification_sweep() -> list[VerifyOutcome]:
+        """Verify every incident in `verifying`. Call periodically (e.g. every 30 s)."""
+        return [_verify_with_zabbix(e) for e in _awaiting_verification()]
+
+    @app.get("/verifications", response_model=list[VerificationResult])
+    def list_verifications(incident_id: str | None = None, execution_id: str | None = None) -> list[VerificationResult]:
+        return store.list_verifications(incident_id, execution_id)
 
     def _run(execution: Execution) -> Execution:
         device = _require_device(store, execution.device_id)

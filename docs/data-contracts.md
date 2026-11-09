@@ -228,6 +228,8 @@ The specification requires a monitoring check after every automated action and a
 
 - Remediation execution adds `device_id`, `reason` (policy decision), `detail` (action result), `approved_by`, and `timestamps.requested_at`. Status values unchanged; a human rejection is recorded as `rejected_by_policy` with the approver in `reason`.
 
+- Verification results (`GET /verifications`) add `device_id` to the minimum record. `source` is always `zabbix`.
+
 ## Rules
 
 - Producers and consumers use these names.
