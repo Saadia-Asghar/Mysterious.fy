@@ -79,7 +79,8 @@ def test_run_records_everything_and_keeps_safety_invariants(tmp_path: Path, pres
     config = json.loads((target / "config.json").read_text(encoding="utf-8"))
     results = json.loads((target / "results.json").read_text(encoding="utf-8"))
     assert config["environment"] == "simulated" and config["preset"] == preset and config["seed"] == 11
-    assert config["methods"] == {"correlation": "time_window_and_topology_v1", "rca": "topology_time_v1",
+    assert config["methods"] == {"correlation": "time_window_and_topology_v1",
+                                 "correlation_v2": "upstream_anchor_quorum_v2", "rca": "topology_time_v1",
                                  "anomaly": "robust_zscore_v1"}
 
     c = results["correlation"]

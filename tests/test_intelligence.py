@@ -117,3 +117,53 @@ def test_rca_without_topology_falls_back_to_first_failure():
     events = [Ev("E1", "X", at(0)), Ev("E2", "X", at(1))]
     ranked = rank(correlate(events, empty)[0], empty)
     assert ranked[0].device_id == "X"
+
+
+# ---- correlation v2 (upstream_anchor_quorum_v2) ---------------------------
+
+def _v2_topology():
+    from intelligence.topology import Topology
+    edges = [("SW-1", "CORE"), ("SW-2", "CORE")]
+    edges += [(f"CAM-1{i}", "SW-1") for i in range(1, 5)] + [(f"CAM-2{i}", "SW-2") for i in range(1, 5)]
+    return Topology(edges)
+
+
+def _ev(eid, dev, sec):
+    from dataclasses import dataclass
+    from datetime import datetime, timedelta, timezone
+
+    @dataclass
+    class E:
+        event_id: str
+        device_id: str
+        started_at: datetime
+    return E(eid, dev, datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=sec))
+
+
+def test_v2_siblings_below_quorum_stay_separate():
+    from intelligence.correlation import correlate, correlate_v2
+    events = [_ev("E1", "CAM-11", 0), _ev("E2", "CAM-12", 30)]
+    assert len(correlate(events, _v2_topology())) == 1                 # v1 always merges siblings
+    assert len(correlate_v2(events, _v2_topology())) == 1              # 2 of 4 = 0.5 meets the default quorum
+    assert len(correlate_v2(events, _v2_topology(), quorum=0.75)) == 2  # below quorum: separate incidents
+
+
+def test_v2_silent_upstream_needs_quorum():
+    from intelligence.correlation import correlate_v2
+    events = [_ev("E1", "CAM-11", 0), _ev("E2", "CAM-12", 20), _ev("E3", "CAM-13", 40)]
+    groups = correlate_v2(events, _v2_topology())
+    assert [g.event_ids for g in groups] == [["E1", "E2", "E3"]]
+
+
+def test_v2_anchors_to_alerting_upstream_even_after_slow_cascade():
+    from intelligence.correlation import correlate_v2
+    events = [_ev("E1", "SW-1", 0), _ev("E2", "CAM-11", 100), _ev("E3", "CAM-21", 50)]
+    groups = {tuple(g.event_ids) for g in correlate_v2(events, _v2_topology())}
+    assert groups == {("E1", "E2"), ("E3",)}
+
+
+def test_unknown_method_rejected():
+    import pytest
+    from intelligence.correlation import correlate_with
+    with pytest.raises(ValueError):
+        correlate_with("nope", [], _v2_topology())

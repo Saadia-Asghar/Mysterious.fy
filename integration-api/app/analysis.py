@@ -30,10 +30,11 @@ def build_topology(edges: list[TopologyEdge]) -> Topology:
     return Topology((e.from_device_id, e.to_device_id) for e in edges if e.relationship == "depends_on")
 
 
-def analyze(events: list[Event], edges: list[TopologyEdge], window_seconds: int) -> list[IncidentAnalysis]:
+def analyze(events: list[Event], edges: list[TopologyEdge], window_seconds: int,
+            method: str = correlation.METHOD) -> list[IncidentAnalysis]:
     topology = build_topology(edges)
     incidents = []
-    for group in correlation.correlate(events, topology, window_seconds):
+    for group in correlation.correlate_with(method, events, topology, window_seconds):
         ranked = rca.rank(group, topology)
         incidents.append(
             IncidentAnalysis(
@@ -44,7 +45,7 @@ def analyze(events: list[Event], edges: list[TopologyEdge], window_seconds: int)
                 status="open",
                 created_at=group.first_at,
                 correlation=CorrelationOut(
-                    method=correlation.METHOD, reason=correlation.reason(group, topology, window_seconds)
+                    method=method, reason=correlation.reason(group, topology, window_seconds)
                 ),
                 rca=RcaOut(
                     method=rca.METHOD,

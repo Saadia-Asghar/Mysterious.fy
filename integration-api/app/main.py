@@ -248,10 +248,12 @@ def create_app(
         return store.list_edges()
 
     @app.get("/intelligence/incidents", response_model=list[IncidentAnalysis])
-    def analyze_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS) -> list[IncidentAnalysis]:
+    def analyze_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS,
+                              method: str = analysis.correlation.METHOD) -> list[IncidentAnalysis]:
         if not 1 <= window_seconds <= 3600:
             raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
-        return analysis.analyze(store.list_events(), store.list_edges(), window_seconds)
+        _check_method(method)
+        return analysis.analyze(store.list_events(), store.list_edges(), window_seconds, method)
 
     @app.get("/intelligence/anomalies", response_model=list[AnomalyOut])
     def anomalies(
@@ -273,16 +275,18 @@ def create_app(
         return [r for r in results if r.is_anomaly] if only_anomalies else results
 
     @app.post("/incidents/sync", response_model=SyncResult)
-    def sync_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS) -> SyncResult:
+    def sync_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS,
+                           method: str = analysis.correlation.METHOD) -> SyncResult:
         """Correlate stored events into incidents, persist them, and open a human ticket
         for each incident at or above the ticket severity that does not have one yet."""
         if not 1 <= window_seconds <= 3600:
             raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
+        _check_method(method)
         now = _now()
         created, updated = [], []
         tickets: list[TicketMapping] = []
         errors: dict[str, str] = {}
-        for inc in analysis.analyze(store.list_events(), store.list_edges(), window_seconds):
+        for inc in analysis.analyze(store.list_events(), store.list_edges(), window_seconds, method):
             (created if store.upsert_incident(inc, now) else updated).append(inc.incident_id)
             if ticket_provider is None or store.get_ticket_mapping(inc.incident_id) is not None:
                 continue
@@ -300,6 +304,10 @@ def create_app(
             ticket_errors=errors,
             ticketing="enabled" if ticket_provider else "disabled",
         )
+
+    def _check_method(method: str) -> None:
+        if method not in analysis.correlation.METHODS:
+            raise HTTPException(status_code=422, detail=f"method must be one of {list(analysis.correlation.METHODS)}")
 
     def _now() -> datetime:
         return clock() if clock else datetime.now(timezone.utc)

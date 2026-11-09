@@ -71,12 +71,13 @@ def group_kind(group: list[str], cause: str, events: dict[str, dict]) -> str:
     return "camera_failure"
 
 
-def evaluate_correlation(seed: int, trials: int, workdir: Path, preset: dict) -> dict:
+def evaluate_correlation(seed: int, trials: int, workdir: Path, preset: dict,
+                         method: str = correlation.METHOD) -> dict:
     sc = correlation_scenario(seed, trials, spacing_seconds=preset["spacing_seconds"],
                               max_cascade_delay=preset["max_cascade_delay"],
                               missing_alert_probability=preset["missing_alert_probability"])
     events = {e["event_id"]: e for e in sc.events}
-    settings = Settings(database_path=workdir / "corr.sqlite", profiles_dir=ROOT / "device-profiles")
+    settings = Settings(database_path=workdir / f"corr-{method}.sqlite", profiles_dir=ROOT / "device-profiles")
     with TestClient(create_app(settings)) as client:
         for d in sc.devices:
             must(client.post("/devices", json=device_body(d["device_id"], d["kind"])), 201)
@@ -84,7 +85,7 @@ def evaluate_correlation(seed: int, trials: int, workdir: Path, preset: dict) ->
             must(client.post("/topology/edges", json={"from_device_id": child, "to_device_id": parent}), 201)
         for e in sc.events:
             must(client.post("/events", json=e), 201)
-        must(client.post(f"/incidents/sync?window_seconds={CORRELATION_WINDOW_SECONDS}"))
+        must(client.post("/incidents/sync", params={"window_seconds": CORRELATION_WINDOW_SECONDS, "method": method}))
         incidents = must(client.get("/incidents"))
 
     by_event = {eid: inc for inc in incidents for eid in inc["event_ids"]}
@@ -115,6 +116,7 @@ def evaluate_correlation(seed: int, trials: int, workdir: Path, preset: dict) ->
     n = len(sc.truth_groups)
     gp, gb = grouping_scores(sc.truth_groups, proposed_groups), grouping_scores(sc.truth_groups, baseline_groups)
     return {
+        "method": method,
         "params": sc.params | {"correlation_window_seconds": CORRELATION_WINDOW_SECONDS},
         "raw_alerts": len(events),
         "true_incidents": n,
@@ -279,6 +281,7 @@ def fmt(v) -> str:
 
 def report(config: dict, results: dict) -> str:
     c, a, r = results["correlation"], results["anomaly"], results["remediation"]
+    c2 = results["correlation_v2"]
     lines = [
         f"# Evaluation run {config['run_id']}",
         "",
@@ -289,18 +292,21 @@ def report(config: dict, results: dict) -> str:
         "",
         f"{c['raw_alerts']} raw alerts from {c['params']['trials']} fault trials ({c['true_incidents']} true incidents).",
         "",
-        "| Metric | Proposed | Baseline |",
-        "|---|---|---|",
-        f"| Incidents / tickets | {c['proposed']['incidents_or_tickets']} | {c['baseline']['incidents_or_tickets']} |",
-        f"| Alert reduction | {c['proposed']['alert_reduction_percent']}% | 0% |",
-        f"| Grouping precision | {fmt(c['proposed']['grouping']['precision'])} | {fmt(c['baseline']['grouping']['precision'])} |",
-        f"| Grouping recall | {fmt(c['proposed']['grouping']['recall'])} | {fmt(c['baseline']['grouping']['recall'])} |",
-        f"| RCA top-1 accuracy | {fmt(c['proposed']['rca_top1_accuracy'])} | {fmt(c['baseline']['rca_top1_accuracy'])} |",
-        f"| RCA top-3 accuracy | {fmt(c['proposed']['rca_top3_accuracy'])} | {fmt(c['baseline']['rca_top3_accuracy'])} |",
-        "",
-        "| Fault kind | Cases | Proposed top-1 | Baseline top-1 |",
+        f"| Metric | Proposed v1 ({c['method']}) | Proposed v2 ({c2['method']}) | Baseline |",
         "|---|---|---|---|",
-        *[f"| {k} | {v['cases']} | {fmt(v['proposed_top1'])} | {fmt(v['baseline_top1'])} |" for k, v in c["by_kind"].items()],
+        f"| Incidents / tickets | {c['proposed']['incidents_or_tickets']} | {c2['proposed']['incidents_or_tickets']} | {c['baseline']['incidents_or_tickets']} |",
+        f"| Alert reduction | {c['proposed']['alert_reduction_percent']}% | {c2['proposed']['alert_reduction_percent']}% | 0% |",
+        *[f"| Grouping {m} | {fmt(c['proposed']['grouping'][m])} | {fmt(c2['proposed']['grouping'][m])} | {fmt(c['baseline']['grouping'][m])} |"
+          for m in ("precision", "recall", "f1")],
+        *[f"| RCA top-{k} accuracy | {fmt(c['proposed'][f'rca_top{k}_accuracy'])} | {fmt(c2['proposed'][f'rca_top{k}_accuracy'])} | {fmt(c['baseline'][f'rca_top{k}_accuracy'])} |"
+          for k in (1, 3)],
+        "",
+        "RCA is `topology_time_v1` in both columns; only the correlation method differs.",
+        "",
+        "| Fault kind | Cases | v1 top-1 | v2 top-1 | Baseline top-1 |",
+        "|---|---|---|---|---|",
+        *[f"| {k} | {v['cases']} | {fmt(v['proposed_top1'])} | {fmt(c2['by_kind'][k]['proposed_top1'])} | {fmt(v['baseline_top1'])} |"
+          for k, v in c["by_kind"].items()],
         "",
         "## Anomaly detection (latency)",
         "",
@@ -342,13 +348,14 @@ def run(seed: int, trials: int, remediation_trials: int, out_dir: Path, preset_n
         work = Path(tmp)
         results = {
             "correlation": evaluate_correlation(seed, trials, work, preset),
+            "correlation_v2": evaluate_correlation(seed, trials, work, preset, correlation.METHOD_V2),
             "anomaly": evaluate_anomaly(seed, preset),
             "remediation": evaluate_remediation(seed, remediation_trials, work),
         }
     config = {
         "run_id": run_id, "seed": seed, "created_at": created.isoformat(), "git_commit": git_commit(),
         "environment": "simulated", "preset": preset_name, "preset_params": preset,
-        "methods": {"correlation": correlation.METHOD, "rca": rca.METHOD, "anomaly": anomaly.MODEL_VERSION},
+        "methods": {"correlation": correlation.METHOD, "correlation_v2": correlation.METHOD_V2, "rca": rca.METHOD, "anomaly": anomaly.MODEL_VERSION},
         "trials": trials, "remediation_trials": remediation_trials,
     }
     target = out_dir / run_id

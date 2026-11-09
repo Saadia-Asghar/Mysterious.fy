@@ -18,6 +18,9 @@ class Topology:
             raise TopologyCycle(f"{child} -> {parent} would create a cycle")
         self._parents.setdefault(child, set()).add(parent)
 
+    def devices(self) -> set[str]:
+        return set(self._parents) | {p for ps in self._parents.values() for p in ps}
+
     def parents(self, device: str) -> set[str]:
         return set(self._parents.get(device, ()))
 
