@@ -37,3 +37,7 @@ Metrics: alert reduction, pairwise grouping precision/recall, RCA top-1 and top-
 - Report both presets. The hard preset shows real limitations (over-grouping of overlapping faults; unrelated camera failures on one switch blamed on the switch). Present them as limitations, not hide them.
 - MTTD and MTTR are **not** measured here. They need timings from the live Zabbix deployment.
 - The remediation approver is simulated (always approves).
+
+## Correlation v1 vs v2
+
+From commit 4602afe, every run reports both correlation methods and the baseline side by side. The v2 quorum (0.5) was set before any run. It was checked on development seed 7, never tuned on seed 42. Runs `20261109T0835*` predate v2 and report v1 only.

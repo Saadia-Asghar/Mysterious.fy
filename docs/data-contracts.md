@@ -219,7 +219,7 @@ The specification requires a monitoring check after every automated action and a
 ## Implementation notes (dev)
 
 - Zabbix events get `event_id` = `ZBX-<zabbix eventid>`.
-- `GET /intelligence/incidents` returns Incident fields plus nested `correlation {method, reason}` and `rca {method, ranked_causes[{device_id, score, reason}]}`. Methods: `time_window_and_topology_v1`, `topology_time_v1`. RCA scores are normalized heuristic ranks, not probabilities.
+- `GET /intelligence/incidents` returns Incident fields plus nested `correlation {method, reason}` and `rca {method, ranked_causes[{device_id, score, reason}]}`. Methods: correlation `time_window_and_topology_v1` (default) or `upstream_anchor_quorum_v2` via `?method=` (also on `POST /incidents/sync`; unknown values return 422), RCA `topology_time_v1`. The stored `correlation.method` records which one produced the incident. RCA scores are normalized heuristic ranks, not probabilities.
 - Until incidents are persisted, `incident_id` is `INC-<first event_id>` (deterministic, recomputed on each call).
 
 - Persisted incidents (`GET /incidents`) add `updated_at`, `ticket` (Ticket mapping + `created_at`) and `ticket_error`. Re-analysis refreshes events, devices and RCA but never changes `status`.
