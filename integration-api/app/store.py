@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from app.schemas import Device, Event, Telemetry, TelemetryCreate
+from app.schemas import Device, Event, Telemetry, TelemetryCreate, TopologyEdge
 
 
 class DeviceAlreadyExists(Exception):
@@ -10,6 +10,10 @@ class DeviceAlreadyExists(Exception):
 
 
 class EventAlreadyExists(Exception):
+    pass
+
+
+class EdgeAlreadyExists(Exception):
     pass
 
 
@@ -53,6 +57,14 @@ class Store:
                     timestamp TEXT NOT NULL,
                     source TEXT NOT NULL,
                     FOREIGN KEY (device_id) REFERENCES devices(device_id)
+                );
+                CREATE TABLE IF NOT EXISTS topology_edges (
+                    from_device_id TEXT NOT NULL,
+                    to_device_id TEXT NOT NULL,
+                    relationship TEXT NOT NULL,
+                    PRIMARY KEY (from_device_id, to_device_id, relationship),
+                    FOREIGN KEY (from_device_id) REFERENCES devices(device_id),
+                    FOREIGN KEY (to_device_id) REFERENCES devices(device_id)
                 );
                 """
             )
@@ -176,6 +188,23 @@ class Store:
             )
             for row in rows
         ]
+
+    def insert_edge(self, edge: TopologyEdge) -> None:
+        with self._connect() as conn:
+            try:
+                conn.execute(
+                    "INSERT INTO topology_edges (from_device_id, to_device_id, relationship) VALUES (?, ?, ?)",
+                    (edge.from_device_id, edge.to_device_id, edge.relationship),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise EdgeAlreadyExists(f"{edge.from_device_id}->{edge.to_device_id}") from exc
+
+    def list_edges(self) -> list[TopologyEdge]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM topology_edges ORDER BY from_device_id, to_device_id"
+            ).fetchall()
+        return [TopologyEdge(**dict(row)) for row in rows]
 
     @staticmethod
     def _device(row: sqlite3.Row) -> Device:

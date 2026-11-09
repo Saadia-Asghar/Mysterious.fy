@@ -6,11 +6,21 @@ from fastapi import FastAPI, Header, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from app import zabbix
+from app import analysis, zabbix
 from app.profiles import ProfileCatalog
-from app.schemas import Device, DeviceCreate, DeviceProfile, Event, EventCreate, Telemetry, TelemetryCreate
+from app.schemas import (
+    Device,
+    DeviceCreate,
+    DeviceProfile,
+    Event,
+    EventCreate,
+    IncidentAnalysis,
+    Telemetry,
+    TelemetryCreate,
+    TopologyEdge,
+)
 from app.settings import Settings
-from app.store import DeviceAlreadyExists, EventAlreadyExists, Store, new_event_id
+from app.store import DeviceAlreadyExists, EdgeAlreadyExists, EventAlreadyExists, Store, new_event_id
 from app.zabbix import ZabbixWebhook
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -172,6 +182,31 @@ def create_app(settings: Settings) -> FastAPI:
         if device_id is not None:
             _require_device(store, device_id)
         return store.list_telemetry(device_id)
+
+    @app.post("/topology/edges", response_model=TopologyEdge, status_code=201)
+    def create_edge(body: TopologyEdge) -> TopologyEdge:
+        _require_device(store, body.from_device_id)
+        _require_device(store, body.to_device_id)
+        topology = analysis.build_topology(store.list_edges())
+        try:
+            topology.add(body.from_device_id, body.to_device_id)
+        except analysis.TopologyCycle as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from None
+        try:
+            store.insert_edge(body)
+        except EdgeAlreadyExists:
+            raise HTTPException(status_code=409, detail="Edge already exists") from None
+        return body
+
+    @app.get("/topology/edges", response_model=list[TopologyEdge])
+    def list_edges() -> list[TopologyEdge]:
+        return store.list_edges()
+
+    @app.get("/intelligence/incidents", response_model=list[IncidentAnalysis])
+    def analyze_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS) -> list[IncidentAnalysis]:
+        if not 1 <= window_seconds <= 3600:
+            raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
+        return analysis.analyze(store.list_events(), store.list_edges(), window_seconds)
 
     return app
 

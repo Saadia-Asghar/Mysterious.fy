@@ -73,3 +73,36 @@ class TelemetryCreate(BaseModel):
 
 class Telemetry(TelemetryCreate):
     telemetry_id: int
+
+
+class TopologyEdge(BaseModel):
+    from_device_id: Identifier
+    to_device_id: Identifier
+    relationship: Literal["depends_on"] = "depends_on"
+
+
+class RankedCauseOut(BaseModel):
+    device_id: str
+    score: float
+    reason: str
+
+
+class CorrelationOut(BaseModel):
+    method: str
+    reason: str
+
+
+class RcaOut(BaseModel):
+    method: str
+    ranked_causes: list[RankedCauseOut]
+
+
+class IncidentAnalysis(BaseModel):
+    incident_id: str
+    event_ids: list[str]
+    affected_devices: list[str]
+    severity: Severity
+    status: Literal["open"]
+    created_at: datetime
+    correlation: CorrelationOut
+    rca: RcaOut
