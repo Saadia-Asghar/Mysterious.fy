@@ -1,0 +1,11 @@
+{
+  "playbook_id": "restart_test_service",
+  "description": "Restart the lab test service through its own restart endpoint. Safe demo target only.",
+  "applies_to_device_types": ["test_service"],
+  "required_capability": "restart",
+  "action": {
+    "type": "http_post",
+    "path": "/restart"
+  },
+  "timeout_seconds": 10
+}

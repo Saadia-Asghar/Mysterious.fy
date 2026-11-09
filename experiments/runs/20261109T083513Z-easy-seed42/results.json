@@ -1,0 +1,4220 @@
+{
+  "correlation": {
+    "params": {
+      "trials": 200,
+      "noise_probability": 0.2,
+      "spacing_seconds": 900,
+      "max_cascade_delay": 30,
+      "missing_alert_probability": 0.0,
+      "trial_weights": {
+        "switch_outage": 0.3,
+        "silent_switch_outage": 0.2,
+        "single_camera": 0.3,
+        "two_unrelated_cameras": 0.2
+      },
+      "correlation_window_seconds": 120
+    },
+    "raw_alerts": 611,
+    "true_incidents": 263,
+    "proposed": {
+      "incidents_or_tickets": 263,
+      "alert_reduction_percent": 56.96,
+      "grouping": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "rca_top1_accuracy": 1.0,
+      "rca_top3_accuracy": 1.0
+    },
+    "baseline": {
+      "incidents_or_tickets": 611,
+      "alert_reduction_percent": 0.0,
+      "grouping": {
+        "precision": null,
+        "recall": 0.0,
+        "f1": null
+      },
+      "rca_top1_accuracy": 0.8631,
+      "rca_top3_accuracy": 0.8631
+    },
+    "by_kind": {
+      "camera_failure": {
+        "cases": 167,
+        "proposed_top1": 1.0,
+        "baseline_top1": 1.0
+      },
+      "silent_switch_outage": {
+        "cases": 36,
+        "proposed_top1": 1.0,
+        "baseline_top1": 0.0
+      },
+      "switch_outage": {
+        "cases": 60,
+        "proposed_top1": 1.0,
+        "baseline_top1": 1.0
+      }
+    },
+    "cases": [
+      {
+        "truth_key": "E00001",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00001",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00002",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00002",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00007",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00007",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00008",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00008",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00009",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00009",
+        "ranked": [
+          "SW-3",
+          "CAM-301",
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00013",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00015",
+        "ranked": [
+          "SW-1",
+          "CAM-103",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00017",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00017",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00018",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00018",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00023",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00023",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00028",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00028",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00033",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00033",
+        "ranked": [
+          "SW-1",
+          "CAM-101",
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00037",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00038",
+        "ranked": [
+          "SW-4",
+          "CAM-402",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00041",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00041",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00042",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00042",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00047",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00047",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00052",
+        "kind": "camera_failure",
+        "true_cause": "CAM-303",
+        "predicted_incident": "INC-E00052",
+        "ranked": [
+          "CAM-303"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00053",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00053",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00058",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00058",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00059",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00059",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00060",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00063",
+        "ranked": [
+          "SW-2",
+          "CAM-204",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00064",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00064",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00065",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00065",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00066",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00066",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00071",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00071",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00072",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00072",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00073",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00074",
+        "ranked": [
+          "SW-3",
+          "CAM-302",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00077",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00077",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00082",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00085",
+        "ranked": [
+          "SW-2",
+          "CAM-204",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00086",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00086",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00087",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00087",
+        "ranked": [
+          "SW-4",
+          "CAM-401",
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00091",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00091",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00096",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00096",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00097",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00097",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00098",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00098",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00099",
+        "kind": "camera_failure",
+        "true_cause": "CAM-104",
+        "predicted_incident": "INC-E00099",
+        "ranked": [
+          "CAM-104"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00100",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00100",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00105",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00105",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00106",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00106",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00107",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00107",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00108",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00108",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00109",
+        "kind": "camera_failure",
+        "true_cause": "CAM-201",
+        "predicted_incident": "INC-E00109",
+        "ranked": [
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00110",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00110",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00111",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00111",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00112",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00112",
+        "ranked": [
+          "SW-2",
+          "CAM-201",
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00116",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00116",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00117",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00117",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00122",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00122",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00123",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00123",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00124",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00124",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00125",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00125",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00126",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00127",
+        "ranked": [
+          "SW-3",
+          "CAM-302",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00130",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00130",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00131",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00131",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00132",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00132",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00133",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00133",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00138",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00138",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00139",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00139",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00140",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00140",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00141",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00141",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00146",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00146",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00147",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00147",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00152",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00152",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00153",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00153",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00154",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00154",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00155",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00155",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00160",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00160",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00161",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00161",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00162",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00162",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00167",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00167",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00168",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00168",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00169",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00169",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00170",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00170",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00171",
+        "kind": "camera_failure",
+        "true_cause": "CAM-104",
+        "predicted_incident": "INC-E00171",
+        "ranked": [
+          "CAM-104"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00172",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00172",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00173",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00173",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00174",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00174",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00175",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00178",
+        "ranked": [
+          "SW-3",
+          "CAM-304",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00179",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00179",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00180",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00183",
+        "ranked": [
+          "SW-4",
+          "CAM-404",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00184",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00184",
+        "ranked": [
+          "SW-3",
+          "CAM-301",
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00188",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00188",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00189",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00189",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00190",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00190",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00191",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00191",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00192",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00192",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00197",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00197",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00198",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00198",
+        "ranked": [
+          "SW-2",
+          "CAM-201",
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00202",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00202",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00203",
+        "kind": "camera_failure",
+        "true_cause": "CAM-104",
+        "predicted_incident": "INC-E00203",
+        "ranked": [
+          "CAM-104"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00204",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00204",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00209",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00209",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00210",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00210",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00211",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00211",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00212",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00212",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00213",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00213",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00218",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00218",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00219",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00222",
+        "ranked": [
+          "SW-4",
+          "CAM-404",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00223",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00223",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00224",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00224",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00229",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00229",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00234",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00234",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00235",
+        "kind": "camera_failure",
+        "true_cause": "CAM-201",
+        "predicted_incident": "INC-E00235",
+        "ranked": [
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00236",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00236",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00237",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00237",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00242",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00242",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00243",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00243",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00244",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00244",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00249",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00249",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00250",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00250",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00255",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00255",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00256",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00256",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00257",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00258",
+        "ranked": [
+          "SW-2",
+          "CAM-202",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00261",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00261",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00266",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00266",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00271",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00271",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00272",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00272",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00273",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00273",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00274",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00274",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00275",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00275",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00276",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00276",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00281",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00281",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00286",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00286",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00287",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00287",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00292",
+        "kind": "camera_failure",
+        "true_cause": "CAM-303",
+        "predicted_incident": "INC-E00292",
+        "ranked": [
+          "CAM-303"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00293",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00293",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00298",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00298",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00303",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00303",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00304",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00304",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00309",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00309",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00310",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00310",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00311",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00313",
+        "ranked": [
+          "SW-1",
+          "CAM-103",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00315",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00315",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00316",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00318",
+        "ranked": [
+          "SW-4",
+          "CAM-403",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00320",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00320",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00321",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00321",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00322",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00322",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00327",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00327",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00328",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00328",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00329",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00330",
+        "ranked": [
+          "SW-2",
+          "CAM-202",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00333",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00333",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00334",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00334",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00339",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00339",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00340",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00340",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00345",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00345",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00346",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00346",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00347",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00348",
+        "ranked": [
+          "SW-4",
+          "CAM-402",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00351",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00351",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00352",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00352",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00353",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00356",
+        "ranked": [
+          "SW-4",
+          "CAM-404",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00357",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00357",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00358",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00358",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00359",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00359",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00360",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00360",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00361",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00361",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00362",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00362",
+        "ranked": [
+          "SW-1",
+          "CAM-101",
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00366",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00369",
+        "ranked": [
+          "SW-3",
+          "CAM-304",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00370",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00370",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00371",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00371",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00372",
+        "kind": "camera_failure",
+        "true_cause": "CAM-303",
+        "predicted_incident": "INC-E00372",
+        "ranked": [
+          "CAM-303"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00373",
+        "kind": "camera_failure",
+        "true_cause": "CAM-104",
+        "predicted_incident": "INC-E00373",
+        "ranked": [
+          "CAM-104"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00374",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00374",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00375",
+        "kind": "camera_failure",
+        "true_cause": "CAM-303",
+        "predicted_incident": "INC-E00375",
+        "ranked": [
+          "CAM-303"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00376",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00376",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00377",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00377",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00378",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00378",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00379",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00379",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00380",
+        "kind": "camera_failure",
+        "true_cause": "CAM-104",
+        "predicted_incident": "INC-E00380",
+        "ranked": [
+          "CAM-104"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00381",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00381",
+        "ranked": [
+          "SW-2",
+          "CAM-201",
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00385",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00385",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00386",
+        "kind": "switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00386",
+        "ranked": [
+          "SW-2",
+          "CORE",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00391",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00391",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00392",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00392",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00393",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00393",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00394",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00394",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00395",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00395",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00396",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00396",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00401",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00401",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00402",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00402",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00407",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00407",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00412",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00414",
+        "ranked": [
+          "SW-3",
+          "CAM-303",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00416",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00416",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00421",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00421",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00422",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00422",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00423",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00423",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00424",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00424",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00425",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00425",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00426",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00426",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00427",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00427",
+        "ranked": [
+          "SW-4",
+          "CAM-401",
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00431",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00431",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00436",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00436",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00441",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00441",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00442",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00442",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00443",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00443",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00444",
+        "kind": "camera_failure",
+        "true_cause": "CAM-302",
+        "predicted_incident": "INC-E00444",
+        "ranked": [
+          "CAM-302"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00445",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00445",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00446",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00446",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00447",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00447",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00452",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00452",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00453",
+        "kind": "camera_failure",
+        "true_cause": "CAM-104",
+        "predicted_incident": "INC-E00453",
+        "ranked": [
+          "CAM-104"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00454",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00454",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00455",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00455",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00460",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00460",
+        "ranked": [
+          "SW-4",
+          "CAM-401",
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00464",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00464",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00469",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00469",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00470",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00470",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00471",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00471",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00472",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00472",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00473",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00473",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00478",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00478",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00479",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00479",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00484",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00484",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00485",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00485",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00486",
+        "kind": "camera_failure",
+        "true_cause": "CAM-404",
+        "predicted_incident": "INC-E00486",
+        "ranked": [
+          "CAM-404"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00487",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00487",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00488",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00488",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00493",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00493",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00494",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00494",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00495",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00495",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00496",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00498",
+        "ranked": [
+          "SW-2",
+          "CAM-203",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00500",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00500",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00501",
+        "kind": "camera_failure",
+        "true_cause": "CAM-101",
+        "predicted_incident": "INC-E00501",
+        "ranked": [
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00502",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00505",
+        "ranked": [
+          "SW-3",
+          "CAM-304",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00506",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00506",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00507",
+        "kind": "camera_failure",
+        "true_cause": "CAM-303",
+        "predicted_incident": "INC-E00507",
+        "ranked": [
+          "CAM-303"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00508",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00509",
+        "ranked": [
+          "SW-2",
+          "CAM-202",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00512",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00512",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00517",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00517",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00518",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00518",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00523",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00523",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00524",
+        "kind": "camera_failure",
+        "true_cause": "CAM-304",
+        "predicted_incident": "INC-E00524",
+        "ranked": [
+          "CAM-304"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00525",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00528",
+        "ranked": [
+          "SW-3",
+          "CAM-304",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00529",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00529",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00530",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00530",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00535",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00535",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00540",
+        "kind": "camera_failure",
+        "true_cause": "CAM-303",
+        "predicted_incident": "INC-E00540",
+        "ranked": [
+          "CAM-303"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00541",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00543",
+        "ranked": [
+          "SW-1",
+          "CAM-103",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00545",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00545",
+        "ranked": [
+          "SW-4",
+          "CAM-401",
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00549",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00549",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00550",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00550",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00555",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00555",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00560",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00560",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00561",
+        "kind": "camera_failure",
+        "true_cause": "CAM-303",
+        "predicted_incident": "INC-E00561",
+        "ranked": [
+          "CAM-303"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00562",
+        "kind": "camera_failure",
+        "true_cause": "CAM-202",
+        "predicted_incident": "INC-E00562",
+        "ranked": [
+          "CAM-202"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00563",
+        "kind": "switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00563",
+        "ranked": [
+          "SW-3",
+          "CORE",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00568",
+        "kind": "camera_failure",
+        "true_cause": "CAM-403",
+        "predicted_incident": "INC-E00568",
+        "ranked": [
+          "CAM-403"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00569",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00569",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00570",
+        "kind": "camera_failure",
+        "true_cause": "CAM-104",
+        "predicted_incident": "INC-E00570",
+        "ranked": [
+          "CAM-104"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00571",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-3",
+        "predicted_incident": "INC-E00574",
+        "ranked": [
+          "SW-3",
+          "CAM-304",
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00575",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00575",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00580",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00580",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00581",
+        "kind": "camera_failure",
+        "true_cause": "CAM-402",
+        "predicted_incident": "INC-E00581",
+        "ranked": [
+          "CAM-402"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00582",
+        "kind": "camera_failure",
+        "true_cause": "CAM-401",
+        "predicted_incident": "INC-E00582",
+        "ranked": [
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00583",
+        "kind": "camera_failure",
+        "true_cause": "CAM-102",
+        "predicted_incident": "INC-E00583",
+        "ranked": [
+          "CAM-102"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00584",
+        "kind": "switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00584",
+        "ranked": [
+          "SW-4",
+          "CORE",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00589",
+        "kind": "camera_failure",
+        "true_cause": "CAM-103",
+        "predicted_incident": "INC-E00589",
+        "ranked": [
+          "CAM-103"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00590",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00590",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00595",
+        "kind": "camera_failure",
+        "true_cause": "CAM-203",
+        "predicted_incident": "INC-E00595",
+        "ranked": [
+          "CAM-203"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00596",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-4",
+        "predicted_incident": "INC-E00597",
+        "ranked": [
+          "SW-4",
+          "CAM-402",
+          "CAM-401"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00600",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00600",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00601",
+        "kind": "camera_failure",
+        "true_cause": "CAM-301",
+        "predicted_incident": "INC-E00601",
+        "ranked": [
+          "CAM-301"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00602",
+        "kind": "silent_switch_outage",
+        "true_cause": "SW-2",
+        "predicted_incident": "INC-E00604",
+        "ranked": [
+          "SW-2",
+          "CAM-203",
+          "CAM-201"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": false,
+        "baseline_top3": false
+      },
+      {
+        "truth_key": "E00606",
+        "kind": "switch_outage",
+        "true_cause": "SW-1",
+        "predicted_incident": "INC-E00606",
+        "ranked": [
+          "SW-1",
+          "CORE",
+          "CAM-101"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      },
+      {
+        "truth_key": "E00611",
+        "kind": "camera_failure",
+        "true_cause": "CAM-204",
+        "predicted_incident": "INC-E00611",
+        "ranked": [
+          "CAM-204"
+        ],
+        "proposed_top1": true,
+        "proposed_top3": true,
+        "baseline_top1": true,
+        "baseline_top3": true
+      }
+    ]
+  },
+  "anomaly": {
+    "params": {
+      "series": 16,
+      "length": 200,
+      "warmup_excluded": 30,
+      "static_threshold_ms": 100.0,
+      "model": "robust_zscore_v1",
+      "threshold": 3.5,
+      "window": 30,
+      "slow_links": 6,
+      "spike_range": [
+        3.0,
+        6.0
+      ],
+      "jitter": 0.1
+    },
+    "labelled_points": 2720,
+    "true_anomalies": 64,
+    "proposed": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "true_positives": 64,
+      "false_positives": 0,
+      "false_negatives": 0
+    },
+    "baseline": {
+      "precision": 0.0395,
+      "recall": 0.6406,
+      "f1": 0.0745,
+      "true_positives": 41,
+      "false_positives": 996,
+      "false_negatives": 23
+    }
+  },
+  "remediation": {
+    "params": {
+      "trials": 60,
+      "stuck_probability": 0.3,
+      "policies": [
+        "monitor_only",
+        "recommend",
+        "require_approval",
+        "auto_remediate"
+      ],
+      "verify_timeout_seconds": 300,
+      "approvals": "simulated (always approve)"
+    },
+    "proposed": {
+      "actions_executed": 29,
+      "blocked_by_policy": 31,
+      "actions_on_non_executing_policy": 0,
+      "verified_recovered": 15,
+      "false_resolutions": 0,
+      "failed_recovery_escalated": 14,
+      "failed_recovery_total": 14,
+      "remediation_success_rate": 0.5172
+    },
+    "baseline": {
+      "actions_executed": 60,
+      "blocked_by_policy": 0,
+      "actions_on_non_executing_policy": 31,
+      "false_resolutions": 22,
+      "remediation_success_rate": 0.6333
+    },
+    "cases": [
+      {
+        "device": "SVC-001",
+        "policy": "monitor_only",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-002",
+        "policy": "require_approval",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-003",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-004",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-005",
+        "policy": "monitor_only",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-006",
+        "policy": "recommend",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-007",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-008",
+        "policy": "auto_remediate",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-009",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-010",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-011",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-012",
+        "policy": "require_approval",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-013",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-014",
+        "policy": "require_approval",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-015",
+        "policy": "auto_remediate",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-016",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-017",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-018",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-019",
+        "policy": "auto_remediate",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-020",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-021",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-022",
+        "policy": "monitor_only",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-023",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-024",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-025",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-026",
+        "policy": "auto_remediate",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-027",
+        "policy": "require_approval",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-028",
+        "policy": "require_approval",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-029",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-030",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-031",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-032",
+        "policy": "recommend",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-033",
+        "policy": "auto_remediate",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-034",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-035",
+        "policy": "monitor_only",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-036",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-037",
+        "policy": "auto_remediate",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-038",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-039",
+        "policy": "require_approval",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-040",
+        "policy": "auto_remediate",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-041",
+        "policy": "auto_remediate",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-042",
+        "policy": "recommend",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-043",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-044",
+        "policy": "auto_remediate",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-045",
+        "policy": "auto_remediate",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-046",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-047",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-048",
+        "policy": "monitor_only",
+        "stuck": true,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-049",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-050",
+        "policy": "auto_remediate",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-051",
+        "policy": "auto_remediate",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-052",
+        "policy": "auto_remediate",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-053",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-054",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-055",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-056",
+        "policy": "require_approval",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-057",
+        "policy": "auto_remediate",
+        "stuck": true,
+        "execution_status": "completed",
+        "final_incident_status": "escalated",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-058",
+        "policy": "monitor_only",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      },
+      {
+        "device": "SVC-059",
+        "policy": "require_approval",
+        "stuck": false,
+        "execution_status": "completed",
+        "final_incident_status": "resolved",
+        "actually_healthy": true
+      },
+      {
+        "device": "SVC-060",
+        "policy": "recommend",
+        "stuck": false,
+        "execution_status": "rejected_by_policy",
+        "final_incident_status": "open",
+        "actually_healthy": false
+      }
+    ]
+  }
+}
