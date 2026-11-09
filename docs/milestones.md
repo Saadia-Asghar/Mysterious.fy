@@ -15,6 +15,7 @@ Build in this order. Finish and review one milestone before starting the next. `
 | M11 controlled self-healing | Policy engine, approval flow and `restart_test_service` playbook on a lab simulator. Tested via mock transport; not yet live. |
 | M12 Zabbix verification | Recovery and failed recovery both follow monitoring; failed recovery escalates with a ticket. Tested with a fake Zabbix API and controllable clock; not yet live. |
 | M13 unified visualization | NMS Operations dashboard (overview, incidents+RCA+ticket, remediation+verification, anomalies, Zabbix device health) and API feeds. Structure tested; not yet opened in a running Grafana. |
+| M14 evaluation | Tooling done: seeded scenarios, baseline comparison, recorded runs in `experiments/runs/` (easy and hard presets). Simulated only; live MTTD/MTTR still to measure. |
 | Known-good implementation tag | None |
 | `main` | Unchanged until an approved merge |
 
