@@ -81,6 +81,7 @@ def reason(group: CorrelationGroup, topology: Topology, window_seconds: int = DE
 METHOD_V2 = "upstream_anchor_quorum_v2"
 DEFAULT_QUORUM = 0.5
 METHODS = (METHOD, METHOD_V2)
+DEFAULT_METHOD = METHOD_V2  # API default; v1 stays selectable for comparison
 
 
 def correlate_v2(events: list[EventLike], topology: Topology, window_seconds: int = DEFAULT_WINDOW_SECONDS,

@@ -249,7 +249,7 @@ def create_app(
 
     @app.get("/intelligence/incidents", response_model=list[IncidentAnalysis])
     def analyze_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS,
-                              method: str = analysis.correlation.METHOD) -> list[IncidentAnalysis]:
+                              method: str = analysis.correlation.DEFAULT_METHOD) -> list[IncidentAnalysis]:
         if not 1 <= window_seconds <= 3600:
             raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
         _check_method(method)
@@ -276,7 +276,7 @@ def create_app(
 
     @app.post("/incidents/sync", response_model=SyncResult)
     def sync_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS,
-                           method: str = analysis.correlation.METHOD) -> SyncResult:
+                           method: str = analysis.correlation.DEFAULT_METHOD) -> SyncResult:
         """Correlate stored events into incidents, persist them, and open a human ticket
         for each incident at or above the ticket severity that does not have one yet."""
         if not 1 <= window_seconds <= 3600:

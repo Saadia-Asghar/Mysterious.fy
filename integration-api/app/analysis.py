@@ -31,7 +31,7 @@ def build_topology(edges: list[TopologyEdge]) -> Topology:
 
 
 def analyze(events: list[Event], edges: list[TopologyEdge], window_seconds: int,
-            method: str = correlation.METHOD) -> list[IncidentAnalysis]:
+            method: str = correlation.DEFAULT_METHOD) -> list[IncidentAnalysis]:
     topology = build_topology(edges)
     incidents = []
     for group in correlation.correlate_with(method, events, topology, window_seconds):
