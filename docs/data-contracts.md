@@ -216,6 +216,12 @@ The specification requires a monitoring check after every automated action and a
 }
 ```
 
+## Implementation notes (dev)
+
+- Zabbix events get `event_id` = `ZBX-<zabbix eventid>`.
+- `GET /intelligence/incidents` returns Incident fields plus nested `correlation {method, reason}` and `rca {method, ranked_causes[{device_id, score, reason}]}`. Methods: `time_window_and_topology_v1`, `topology_time_v1`. RCA scores are normalized heuristic ranks, not probabilities.
+- Until incidents are persisted, `incident_id` is `INC-<first event_id>` (deterministic, recomputed on each call).
+
 ## Rules
 
 - Producers and consumers use these names.

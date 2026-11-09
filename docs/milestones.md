@@ -9,6 +9,7 @@ Build in this order. Finish and review one milestone before starting the next. `
 | M0 foundation | Complete on `dev`, awaiting review. Checks: `tests/test_foundation.py` |
 | Local integration service | Devices, telemetry, events. M5 Zabbix webhook route `/integrations/zabbix/events` unit-tested; live Zabbix not yet connected. |
 | M1 core services | Compose written and statically tested. Not yet run (no Docker on first dev machine). |
+| M7–M9 topology, correlation, RCA | Implemented in `intelligence/`, exposed at `/topology/edges` and `/intelligence/incidents`. Unit- and API-tested on synthetic scenarios. Accuracy not yet measured (M14). |
 | Known-good implementation tag | None |
 | `main` | Unchanged until an approved merge |
 
