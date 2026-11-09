@@ -2,7 +2,18 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from app.schemas import Device, Event, Telemetry, TelemetryCreate, TopologyEdge
+import json
+
+from app.schemas import (
+    Device,
+    Event,
+    IncidentAnalysis,
+    StoredIncident,
+    Telemetry,
+    TelemetryCreate,
+    TicketMapping,
+    TopologyEdge,
+)
 
 
 class DeviceAlreadyExists(Exception):
@@ -57,6 +68,20 @@ class Store:
                     timestamp TEXT NOT NULL,
                     source TEXT NOT NULL,
                     FOREIGN KEY (device_id) REFERENCES devices(device_id)
+                );
+                CREATE TABLE IF NOT EXISTS incidents (
+                    incident_id TEXT PRIMARY KEY,
+                    status TEXT NOT NULL,
+                    analysis_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    ticket_error TEXT
+                );
+                CREATE TABLE IF NOT EXISTS ticket_mappings (
+                    incident_id TEXT PRIMARY KEY REFERENCES incidents(incident_id),
+                    provider TEXT NOT NULL,
+                    external_ticket_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS topology_edges (
                     from_device_id TEXT NOT NULL,
@@ -205,6 +230,65 @@ class Store:
                 "SELECT * FROM topology_edges ORDER BY from_device_id, to_device_id"
             ).fetchall()
         return [TopologyEdge(**dict(row)) for row in rows]
+
+    def upsert_incident(self, analysis: IncidentAnalysis, now: datetime) -> bool:
+        """Insert a new incident or refresh its analysis. Returns True if it was new.
+        Status belongs to the incident lifecycle and is never overwritten by re-analysis."""
+        body = analysis.model_dump_json()
+        with self._connect() as conn:
+            exists = conn.execute(
+                "SELECT 1 FROM incidents WHERE incident_id = ?", (analysis.incident_id,)
+            ).fetchone()
+            if exists:
+                conn.execute(
+                    "UPDATE incidents SET analysis_json = ?, updated_at = ? WHERE incident_id = ?",
+                    (body, now.isoformat(), analysis.incident_id),
+                )
+                return False
+            conn.execute(
+                "INSERT INTO incidents (incident_id, status, analysis_json, created_at, updated_at)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (analysis.incident_id, analysis.status, body, analysis.created_at.isoformat(), now.isoformat()),
+            )
+            return True
+
+    def set_ticket_error(self, incident_id: str, error: str | None) -> None:
+        with self._connect() as conn:
+            conn.execute("UPDATE incidents SET ticket_error = ? WHERE incident_id = ?", (error, incident_id))
+
+    def insert_ticket_mapping(self, mapping: TicketMapping) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO ticket_mappings (incident_id, provider, external_ticket_id, created_at)"
+                " VALUES (?, ?, ?, ?)",
+                (mapping.incident_id, mapping.provider, mapping.external_ticket_id, mapping.created_at.isoformat()),
+            )
+            conn.execute("UPDATE incidents SET ticket_error = NULL WHERE incident_id = ?", (mapping.incident_id,))
+
+    def get_ticket_mapping(self, incident_id: str) -> TicketMapping | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM ticket_mappings WHERE incident_id = ?", (incident_id,)).fetchone()
+        return TicketMapping(**dict(row)) if row else None
+
+    def list_incidents(self) -> list[StoredIncident]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM incidents ORDER BY created_at, incident_id").fetchall()
+        return [self._incident(row) for row in rows]
+
+    def get_incident(self, incident_id: str) -> StoredIncident | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM incidents WHERE incident_id = ?", (incident_id,)).fetchone()
+        return self._incident(row) if row else None
+
+    def _incident(self, row: sqlite3.Row) -> StoredIncident:
+        data = json.loads(row["analysis_json"])
+        data.update(
+            status=row["status"],
+            updated_at=row["updated_at"],
+            ticket=self.get_ticket_mapping(row["incident_id"]),
+            ticket_error=row["ticket_error"],
+        )
+        return StoredIncident(**data)
 
     @staticmethod
     def _device(row: sqlite3.Row) -> Device:

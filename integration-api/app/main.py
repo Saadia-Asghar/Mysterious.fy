@@ -1,4 +1,5 @@
 import hmac
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,6 +8,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import analysis, zabbix
+from app.osticket import OsTicketClient, TicketError
 from app.profiles import ProfileCatalog
 from app.schemas import (
     Device,
@@ -15,6 +17,9 @@ from app.schemas import (
     Event,
     EventCreate,
     IncidentAnalysis,
+    StoredIncident,
+    SyncResult,
+    TicketMapping,
     Telemetry,
     TelemetryCreate,
     TopologyEdge,
@@ -26,8 +31,14 @@ from app.zabbix import ZabbixWebhook
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
-def create_app(settings: Settings) -> FastAPI:
+def create_app(settings: Settings, ticket_provider: OsTicketClient | None = None) -> FastAPI:
     store = Store(settings.database_path)
+    if ticket_provider is None and settings.osticket_url and settings.osticket_api_key:
+        ticket_provider = OsTicketClient(
+            base_url=settings.osticket_url,
+            api_key=settings.osticket_api_key,
+            reporter_email=settings.osticket_reporter_email or "nms@example.invalid",
+        )
     profiles = ProfileCatalog(settings.profiles_dir)
 
     @asynccontextmanager
@@ -207,6 +218,55 @@ def create_app(settings: Settings) -> FastAPI:
         if not 1 <= window_seconds <= 3600:
             raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
         return analysis.analyze(store.list_events(), store.list_edges(), window_seconds)
+
+    @app.post("/incidents/sync", response_model=SyncResult)
+    def sync_incidents(window_seconds: int = analysis.DEFAULT_WINDOW_SECONDS) -> SyncResult:
+        """Correlate stored events into incidents, persist them, and open a human ticket
+        for each incident at or above the ticket severity that does not have one yet."""
+        if not 1 <= window_seconds <= 3600:
+            raise HTTPException(status_code=422, detail="window_seconds must be between 1 and 3600")
+        now = datetime.now(timezone.utc)
+        created, updated = [], []
+        tickets: list[TicketMapping] = []
+        errors: dict[str, str] = {}
+        for inc in analysis.analyze(store.list_events(), store.list_edges(), window_seconds):
+            (created if store.upsert_incident(inc, now) else updated).append(inc.incident_id)
+            if ticket_provider is None or store.get_ticket_mapping(inc.incident_id) is not None:
+                continue
+            if not analysis.severity_at_least(inc.severity, settings.ticket_min_severity):
+                continue
+            try:
+                number = ticket_provider.create_ticket(*analysis.ticket_text(inc))
+            except TicketError as exc:
+                errors[inc.incident_id] = str(exc)
+                store.set_ticket_error(inc.incident_id, str(exc))
+                continue
+            mapping = TicketMapping(
+                incident_id=inc.incident_id,
+                provider=ticket_provider.provider,
+                external_ticket_id=number,
+                created_at=now,
+            )
+            store.insert_ticket_mapping(mapping)
+            tickets.append(mapping)
+        return SyncResult(
+            incidents_created=created,
+            incidents_updated=updated,
+            tickets_created=tickets,
+            ticket_errors=errors,
+            ticketing="enabled" if ticket_provider else "disabled",
+        )
+
+    @app.get("/incidents", response_model=list[StoredIncident])
+    def list_incidents() -> list[StoredIncident]:
+        return store.list_incidents()
+
+    @app.get("/incidents/{incident_id}", response_model=StoredIncident)
+    def get_incident(incident_id: str) -> StoredIncident:
+        incident = store.get_incident(incident_id)
+        if incident is None:
+            raise HTTPException(status_code=404, detail=f"Unknown incident_id {incident_id}")
+        return incident
 
     return app
 

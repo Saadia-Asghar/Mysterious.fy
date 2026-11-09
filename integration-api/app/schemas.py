@@ -106,3 +106,25 @@ class IncidentAnalysis(BaseModel):
     created_at: datetime
     correlation: CorrelationOut
     rca: RcaOut
+
+
+class TicketMapping(BaseModel):
+    incident_id: str
+    provider: str
+    external_ticket_id: str
+    created_at: datetime
+
+
+class StoredIncident(IncidentAnalysis):
+    status: Literal["open", "action_pending", "verifying", "resolved", "escalated"]
+    updated_at: datetime
+    ticket: TicketMapping | None = None
+    ticket_error: str | None = None
+
+
+class SyncResult(BaseModel):
+    incidents_created: list[str]
+    incidents_updated: list[str]
+    tickets_created: list[TicketMapping]
+    ticket_errors: dict[str, str]
+    ticketing: Literal["enabled", "disabled"]
