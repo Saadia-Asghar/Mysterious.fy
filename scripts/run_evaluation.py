@@ -266,7 +266,8 @@ def evaluate_remediation(seed: int, trials: int, workdir: Path, stuck_probabilit
 def git_commit() -> str:
     try:
         sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", ":!experiments/runs"],
+                               cwd=ROOT, capture_output=True, text=True).stdout.strip()  # run outputs do not count
         return sha + ("-dirty" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
