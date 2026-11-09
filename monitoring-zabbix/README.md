@@ -25,12 +25,12 @@ Status: route implemented and unit-tested (`tests/test_zabbix_events.py`). End-t
 
 The integration API never trusts the playbook result. After an action it asks Zabbix: the host is healthy only when Zabbix has **no open problems** for it.
 
-1. Create an API token (Users -> API tokens) and set  and .
-2. Call  every 30 s (cron/scheduler), or  by hand. A recovery event from the NMS webhook also counts as healthy.
-3. Still unhealthy after  (default 300) -> incident  and an osTicket ticket is opened.
+1. Create an API token (Users → API tokens) and set `NMS_ZABBIX_API_URL` and `NMS_ZABBIX_API_TOKEN`.
+2. Call `POST /verification/sweep` every 30 s (cron/scheduler), or `POST /executions/{id}/verify` by hand. A recovery event from the NMS webhook also counts as healthy.
+3. Still unhealthy after `NMS_VERIFY_TIMEOUT_SECONDS` (default 300) → incident `escalated` and an osTicket ticket is opened.
 
 ### Monitoring the lab test service
 
-Host name . Add an HTTP agent item on  (or a web scenario) and a trigger that fires on a non-200 response, with tag .
+Host name `SVC-001`. Add an HTTP agent item on `http://<host>:9100/health` (or a web scenario) and a trigger that fires on a non-200 response, with tag `nms_event_type=service_down`.
 
-Status: implemented and tested with a fake Zabbix API (); not yet verified against a live Zabbix.
+Status: implemented and tested with a fake Zabbix API (`tests/test_verification.py`); not yet verified against a live Zabbix.
