@@ -1,0 +1,5 @@
+apiVersion: 1
+apps:
+  # The Zabbix data source ships inside this app plugin; it must be enabled.
+  - type: alexanderzobnin-zabbix-app
+    disabled: false

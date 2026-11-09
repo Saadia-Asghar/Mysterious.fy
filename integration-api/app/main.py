@@ -27,6 +27,9 @@ from app.schemas import (
     ApprovalRequest,
     Execution,
     ExecutionTimestamps,
+    GrafanaExecutionRow,
+    GrafanaIncidentRow,
+    GrafanaSummary,
     RemediationRequest,
     IncidentAnalysis,
     StoredIncident,
@@ -389,6 +392,79 @@ def create_app(
     def verification_sweep() -> list[VerifyOutcome]:
         """Verify every incident in `verifying`. Call periodically (e.g. every 30 s)."""
         return [_verify_with_zabbix(e) for e in _awaiting_verification()]
+
+    # ---- Grafana feeds (M13): flat, read-only tables for the Infinity data source ----
+
+    @app.get("/grafana/summary", response_model=list[GrafanaSummary])
+    def grafana_summary() -> list[GrafanaSummary]:
+        incidents = store.list_incidents()
+        executions = store.list_executions()
+        verifications = store.list_verifications()
+        by_status = {s: sum(i.status == s for i in incidents) for s in
+                     ("open", "action_pending", "verifying", "resolved", "escalated")}
+        raw = len(store.list_events())
+        reduction = round(100 * (1 - len(incidents) / raw), 1) if raw and incidents else 0.0
+        return [GrafanaSummary(
+            incidents_total=len(incidents),
+            **by_status,
+            raw_events=raw,
+            alert_reduction_percent=reduction,
+            remediations_completed=sum(e.status == "completed" for e in executions),
+            remediations_failed=sum(e.status == "failed" for e in executions),
+            remediations_blocked=sum(e.status == "rejected_by_policy" for e in executions),
+            verified_healthy=sum(v.healthy for v in verifications),
+            verified_unhealthy=sum(not v.healthy for v in verifications),
+        )]
+
+    @app.get("/grafana/incidents", response_model=list[GrafanaIncidentRow])
+    def grafana_incidents(status: str | None = None) -> list[GrafanaIncidentRow]:
+        rows = []
+        for inc in reversed(store.list_incidents()):
+            if status and inc.status != status:
+                continue
+            top = inc.rca.ranked_causes[0] if inc.rca.ranked_causes else None
+            execs = store.list_executions(inc.incident_id)
+            verifs = store.list_verifications(incident_id=inc.incident_id)
+            rows.append(GrafanaIncidentRow(
+                incident_id=inc.incident_id,
+                created_at=inc.created_at,
+                severity=inc.severity,
+                status=inc.status,
+                affected_devices=", ".join(inc.affected_devices),
+                affected_count=len(inc.affected_devices),
+                event_count=len(inc.event_ids),
+                top_cause=top.device_id if top else None,
+                top_cause_score=top.score if top else None,
+                top_cause_reason=top.reason if top else None,
+                correlation_reason=inc.correlation.reason,
+                ticket_id=inc.ticket.external_ticket_id if inc.ticket else None,
+                remediation_status=execs[-1].status if execs else None,
+                verified_healthy=verifs[-1].healthy if verifs else None,
+            ))
+        return rows
+
+    @app.get("/grafana/executions", response_model=list[GrafanaExecutionRow])
+    def grafana_executions() -> list[GrafanaExecutionRow]:
+        rows = []
+        for e in reversed(store.list_executions()):
+            verifs = store.list_verifications(execution_id=e.execution_id)
+            last = verifs[-1] if verifs else None
+            rows.append(GrafanaExecutionRow(
+                execution_id=e.execution_id,
+                incident_id=e.incident_id,
+                device_id=e.device_id,
+                playbook_id=e.playbook_id,
+                policy=e.policy,
+                status=e.status,
+                reason=e.reason,
+                approved_by=e.approved_by,
+                requested_at=e.timestamps.requested_at,
+                finished_at=e.timestamps.finished_at,
+                last_verification=last.summary if last else None,
+                last_verified_at=last.observed_at if last else None,
+                healthy=last.healthy if last else None,
+            ))
+        return rows
 
     @app.get("/verifications", response_model=list[VerificationResult])
     def list_verifications(incident_id: str | None = None, execution_id: str | None = None) -> list[VerificationResult]:

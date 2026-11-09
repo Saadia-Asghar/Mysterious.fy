@@ -43,7 +43,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app
+      GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app,yesoreyeram-infinity-datasource
+      NMS_API_URL: ${NMS_API_URL}
       ZABBIX_API_URL: http://zabbix-web:8080/api_jsonrpc.php
       ZABBIX_API_TOKEN: ${ZABBIX_API_TOKEN}
     volumes:
@@ -51,6 +52,7 @@ services:
       - ../visualization-grafana/provisioning:/etc/grafana/provisioning:ro
       - ../visualization-grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports: ["${GRAFANA_PORT}:3000"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on: [zabbix-web]
 
   osticket-db:

@@ -189,3 +189,52 @@ class VerifyOutcome(BaseModel):
     incident_status: str
     ticket: TicketMapping | None = None
     ticket_error: str | None = None
+
+
+class GrafanaSummary(BaseModel):
+    incidents_total: int
+    open: int
+    action_pending: int
+    verifying: int
+    resolved: int
+    escalated: int
+    raw_events: int
+    alert_reduction_percent: float
+    remediations_completed: int
+    remediations_failed: int
+    remediations_blocked: int
+    verified_healthy: int
+    verified_unhealthy: int
+
+
+class GrafanaIncidentRow(BaseModel):
+    incident_id: str
+    created_at: datetime
+    severity: str
+    status: str
+    affected_devices: str
+    affected_count: int
+    event_count: int
+    top_cause: str | None
+    top_cause_score: float | None
+    top_cause_reason: str | None
+    correlation_reason: str
+    ticket_id: str | None
+    remediation_status: str | None
+    verified_healthy: bool | None
+
+
+class GrafanaExecutionRow(BaseModel):
+    execution_id: str
+    incident_id: str
+    device_id: str
+    playbook_id: str
+    policy: str
+    status: str
+    reason: str
+    approved_by: str | None
+    requested_at: datetime
+    finished_at: datetime | None
+    last_verification: str | None
+    last_verified_at: datetime | None
+    healthy: bool | None
