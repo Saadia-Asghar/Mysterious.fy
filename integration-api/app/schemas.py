@@ -141,3 +141,34 @@ class AnomalyOut(BaseModel):
     is_anomaly: bool
     direction: Literal["high", "low", "normal"]
     model_version: str
+
+
+ExecutionStatus = Literal["pending", "rejected_by_policy", "running", "completed", "failed"]
+
+
+class RemediationRequest(BaseModel):
+    playbook_id: Identifier
+    device_id: Identifier | None = None
+
+
+class ApprovalRequest(BaseModel):
+    approved_by: str = Field(min_length=1, max_length=128)
+
+
+class ExecutionTimestamps(BaseModel):
+    requested_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+
+class Execution(BaseModel):
+    execution_id: str
+    incident_id: str
+    device_id: str
+    playbook_id: str
+    policy: Policy
+    status: ExecutionStatus
+    reason: str
+    detail: str | None = None
+    approved_by: str | None = None
+    timestamps: ExecutionTimestamps

@@ -11,6 +11,7 @@ class Settings:
     profiles_dir: Path
     host: str = "127.0.0.1"
     port: int = 8000
+    playbooks_dir: Path = REPO_ROOT / "remediation-playbooks"
     zabbix_webhook_token: str | None = None
     osticket_url: str | None = None
     osticket_api_key: str | None = None
@@ -24,6 +25,7 @@ class Settings:
             profiles_dir=Path(os.environ.get("NMS_PROFILES_DIR", REPO_ROOT / "device-profiles")),
             host=os.environ.get("NMS_HOST", "127.0.0.1"),
             port=int(os.environ.get("NMS_PORT", "8000")),
+            playbooks_dir=Path(os.environ.get("NMS_PLAYBOOKS_DIR", REPO_ROOT / "remediation-playbooks")),
             zabbix_webhook_token=os.environ.get("NMS_ZABBIX_WEBHOOK_TOKEN") or None,
             osticket_url=os.environ.get("NMS_OSTICKET_URL") or None,
             osticket_api_key=os.environ.get("NMS_OSTICKET_API_KEY") or None,

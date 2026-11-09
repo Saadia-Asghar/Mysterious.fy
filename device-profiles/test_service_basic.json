@@ -1,0 +1,15 @@
+{
+  "profile_id": "test_service_basic",
+  "device_type": "test_service",
+  "connectors": ["http"],
+  "optional_connectors": [],
+  "metrics": [
+    {"metric_name": "availability", "unit": "bool"},
+    {"metric_name": "latency_ms", "unit": "ms"}
+  ],
+  "triggers": ["service_down", "high_latency"],
+  "dashboard": "test_service_basic",
+  "capabilities": ["health_check", "restart"],
+  "allowed_playbooks": ["restart_test_service"],
+  "default_policy": "require_approval"
+}

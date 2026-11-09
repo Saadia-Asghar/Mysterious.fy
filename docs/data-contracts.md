@@ -226,6 +226,8 @@ The specification requires a monitoring check after every automated action and a
 
 - `GET /intelligence/anomalies` returns the Anomaly result fields (`device_id`, `anomaly_score`, `model_version`=`robust_zscore_v1`, `timestamp`) plus `metric_name`, `value`, `baseline_median`, `robust_z`, `is_anomaly`, `direction`.
 
+- Remediation execution adds `device_id`, `reason` (policy decision), `detail` (action result), `approved_by`, and `timestamps.requested_at`. Status values unchanged; a human rejection is recorded as `rejected_by_policy` with the approver in `reason`.
+
 ## Rules
 
 - Producers and consumers use these names.

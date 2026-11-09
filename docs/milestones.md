@@ -12,6 +12,7 @@ Build in this order. Finish and review one milestone before starting the next. `
 | M7–M9 topology, correlation, RCA | Implemented in `intelligence/`, exposed at `/topology/edges` and `/intelligence/incidents`. Unit- and API-tested on synthetic scenarios. Accuracy not yet measured (M14). |
 | M6 osTicket | Incidents persisted; one ticket per eligible incident; mapping stored. Tested with a fake osTicket server, not yet live. |
 | M10 anomaly detection | `robust_zscore_v1` implemented, exposed at `/intelligence/anomalies`, logic-tested on synthetic seeded series. Not yet evaluated on real runs (M14). |
+| M11 controlled self-healing | Policy engine, approval flow and `restart_test_service` playbook on a lab simulator. Tested via mock transport; not yet live. |
 | Known-good implementation tag | None |
 | `main` | Unchanged until an approved merge |
 

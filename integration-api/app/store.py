@@ -7,6 +7,7 @@ import json
 from app.schemas import (
     Device,
     Event,
+    Execution,
     IncidentAnalysis,
     StoredIncident,
     Telemetry,
@@ -82,6 +83,12 @@ class Store:
                     provider TEXT NOT NULL,
                     external_ticket_id TEXT NOT NULL,
                     created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS executions (
+                    execution_id TEXT PRIMARY KEY,
+                    incident_id TEXT NOT NULL REFERENCES incidents(incident_id),
+                    status TEXT NOT NULL,
+                    body_json TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS topology_edges (
                     from_device_id TEXT NOT NULL,
@@ -289,6 +296,34 @@ class Store:
             ticket_error=row["ticket_error"],
         )
         return StoredIncident(**data)
+
+    def set_incident_status(self, incident_id: str, status: str, now: datetime) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE incidents SET status = ?, updated_at = ? WHERE incident_id = ?",
+                (status, now.isoformat(), incident_id),
+            )
+
+    def save_execution(self, execution: Execution) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO executions (execution_id, incident_id, status, body_json) VALUES (?, ?, ?, ?)"
+                " ON CONFLICT(execution_id) DO UPDATE SET status = excluded.status, body_json = excluded.body_json",
+                (execution.execution_id, execution.incident_id, execution.status, execution.model_dump_json()),
+            )
+
+    def get_execution(self, execution_id: str) -> Execution | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT body_json FROM executions WHERE execution_id = ?", (execution_id,)).fetchone()
+        return Execution.model_validate_json(row[0]) if row else None
+
+    def list_executions(self, incident_id: str | None = None) -> list[Execution]:
+        query, params = "SELECT body_json FROM executions", ()
+        if incident_id is not None:
+            query, params = query + " WHERE incident_id = ?", (incident_id,)
+        with self._connect() as conn:
+            rows = conn.execute(query + " ORDER BY rowid", params).fetchall()
+        return [Execution.model_validate_json(r[0]) for r in rows]
 
     @staticmethod
     def _device(row: sqlite3.Row) -> Device:

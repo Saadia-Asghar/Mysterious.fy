@@ -2,4 +2,4 @@
 
 Simulated endpoints standing in for devices when real authorized hardware isn't available.
 
-Status: placeholder created in M0. Implementation starts in M2.
+- `test_service.py`: lab service with `/health`, `/restart` and fault controls (`/fault/break`, `/fault/stuck`, `/fault/clear`). Target of the `restart_test_service` playbook (M11) and of verification tests (M12). See the file header for how to run it.

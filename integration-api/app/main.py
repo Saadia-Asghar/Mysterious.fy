@@ -7,7 +7,11 @@ from fastapi import FastAPI, Header, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from app import analysis, zabbix
+from uuid import uuid4
+
+import httpx
+
+from app import analysis, remediation, zabbix
 from app.osticket import OsTicketClient, TicketError
 from app.profiles import ProfileCatalog
 from app.schemas import (
@@ -17,6 +21,10 @@ from app.schemas import (
     Event,
     EventCreate,
     AnomalyOut,
+    ApprovalRequest,
+    Execution,
+    ExecutionTimestamps,
+    RemediationRequest,
     IncidentAnalysis,
     StoredIncident,
     SyncResult,
@@ -32,7 +40,12 @@ from app.zabbix import ZabbixWebhook
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
-def create_app(settings: Settings, ticket_provider: OsTicketClient | None = None) -> FastAPI:
+def create_app(
+    settings: Settings,
+    ticket_provider: OsTicketClient | None = None,
+    remediation_transport: httpx.BaseTransport | None = None,
+) -> FastAPI:
+    playbooks = remediation.PlaybookCatalog(settings.playbooks_dir)
     store = Store(settings.database_path)
     if ticket_provider is None and settings.osticket_url and settings.osticket_api_key:
         ticket_provider = OsTicketClient(
@@ -46,6 +59,7 @@ def create_app(settings: Settings, ticket_provider: OsTicketClient | None = None
     async def lifespan(app: FastAPI):
         store.init()
         profiles.load()
+        playbooks.load()
         app.state.settings = settings
         app.state.store = store
         app.state.profiles = profiles
@@ -276,6 +290,101 @@ def create_app(settings: Settings, ticket_provider: OsTicketClient | None = None
             ticket_errors=errors,
             ticketing="enabled" if ticket_provider else "disabled",
         )
+
+    def _now() -> datetime:
+        return datetime.now(timezone.utc)
+
+    def _run(execution: Execution) -> Execution:
+        device = _require_device(store, execution.device_id)
+        playbook = playbooks.get(execution.playbook_id)
+        execution.status = "running"
+        execution.timestamps.started_at = _now()
+        store.save_execution(execution)
+        ok, detail = remediation.execute(playbook, device, remediation_transport)
+        execution.status = "completed" if ok else "failed"
+        execution.detail = detail
+        execution.timestamps.finished_at = _now()
+        store.save_execution(execution)
+        # completed -> monitoring must confirm health (M12); failed -> a human takes over
+        store.set_incident_status(execution.incident_id, "verifying" if ok else "escalated", _now())
+        return execution
+
+    @app.get("/playbooks", response_model=list[remediation.Playbook])
+    def list_playbooks() -> list[remediation.Playbook]:
+        return playbooks.all()
+
+    @app.post("/incidents/{incident_id}/remediation", response_model=Execution, status_code=201)
+    def request_remediation(incident_id: str, body: RemediationRequest) -> Execution:
+        incident = store.get_incident(incident_id)
+        if incident is None:
+            raise HTTPException(status_code=404, detail=f"Unknown incident_id {incident_id}")
+        if incident.status in ("resolved", "escalated"):
+            raise HTTPException(status_code=409, detail=f"Incident is {incident.status}")
+        if any(e.status in ("pending", "running") for e in store.list_executions(incident_id)):
+            raise HTTPException(status_code=409, detail="A remediation is already pending or running")
+        candidates = [c.device_id for c in incident.rca.ranked_causes] + incident.affected_devices
+        top = incident.rca.ranked_causes[0].device_id if incident.rca.ranked_causes else None
+        device_id = body.device_id or top
+        if device_id is None or device_id not in candidates:
+            raise HTTPException(status_code=422, detail="device_id must be an affected device or ranked cause")
+        device = _require_device(store, device_id)
+        playbook = playbooks.get(body.playbook_id)
+        if playbook is None:
+            raise HTTPException(status_code=404, detail=f"Unknown playbook_id {body.playbook_id}")
+        profile = profiles.get(device.profile_id)
+        decision = remediation.decide(device, profile, playbook)
+        execution = Execution(
+            execution_id=f"EXE-{uuid4().hex[:12]}",
+            incident_id=incident_id,
+            device_id=device_id,
+            playbook_id=playbook.playbook_id,
+            policy=device.automation_policy,
+            status="pending" if decision.status == "run" else decision.status,
+            reason=decision.reason,
+            timestamps=ExecutionTimestamps(requested_at=_now()),
+        )
+        store.save_execution(execution)
+        if decision.status == "pending":
+            store.set_incident_status(incident_id, "action_pending", _now())
+        if decision.status == "run":
+            execution = _run(execution)
+        return execution
+
+    @app.post("/executions/{execution_id}/approve", response_model=Execution)
+    def approve(execution_id: str, body: ApprovalRequest) -> Execution:
+        execution = _require_pending(execution_id)
+        execution.approved_by = body.approved_by
+        return _run(execution)
+
+    @app.post("/executions/{execution_id}/reject", response_model=Execution)
+    def reject(execution_id: str, body: ApprovalRequest) -> Execution:
+        execution = _require_pending(execution_id)
+        execution.status = "rejected_by_policy"
+        execution.reason = f"rejected by approver {body.approved_by}"
+        execution.approved_by = body.approved_by
+        execution.timestamps.finished_at = _now()
+        store.save_execution(execution)
+        store.set_incident_status(execution.incident_id, "escalated", _now())
+        return execution
+
+    def _require_pending(execution_id: str) -> Execution:
+        execution = store.get_execution(execution_id)
+        if execution is None:
+            raise HTTPException(status_code=404, detail=f"Unknown execution_id {execution_id}")
+        if execution.status != "pending" or execution.policy != "require_approval":
+            raise HTTPException(status_code=409, detail=f"Execution is {execution.status}, not awaiting approval")
+        return execution
+
+    @app.get("/executions", response_model=list[Execution])
+    def list_executions(incident_id: str | None = None) -> list[Execution]:
+        return store.list_executions(incident_id)
+
+    @app.get("/executions/{execution_id}", response_model=Execution)
+    def get_execution(execution_id: str) -> Execution:
+        execution = store.get_execution(execution_id)
+        if execution is None:
+            raise HTTPException(status_code=404, detail=f"Unknown execution_id {execution_id}")
+        return execution
 
     @app.get("/incidents", response_model=list[StoredIncident])
     def list_incidents() -> list[StoredIncident]:
