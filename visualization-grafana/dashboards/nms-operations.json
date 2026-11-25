@@ -949,7 +949,7 @@
     {
       "type": "row",
       "id": 11,
-      "title": "Device health (Zabbix) - pick a group and devices above",
+      "title": "Analytics: trends, recovery time, problem devices, sites",
       "collapsed": false,
       "gridPos": {
         "x": 0,
@@ -960,8 +960,465 @@
       "panels": []
     },
     {
-      "type": "timeseries",
+      "type": "stat",
       "id": 12,
+      "title": "MTTR (Zabbix-confirmed)",
+      "description": "Mean minutes from incident start to Zabbix's first healthy check. Only verified recoveries count.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 4,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/analytics/recovery",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "minutes",
+              "text": "Recovery minutes",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 13,
+      "title": "Alerts vs incidents per day",
+      "description": "Per day: raw alerts from monitoring vs the incidents they were grouped into, and their outcome.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 23,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/analytics/daily",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "day",
+              "text": "Day",
+              "type": "timestamp"
+            },
+            {
+              "selector": "raw_events",
+              "text": "Raw alerts",
+              "type": "number"
+            },
+            {
+              "selector": "incidents",
+              "text": "Incidents",
+              "type": "number"
+            },
+            {
+              "selector": "resolved",
+              "text": "Resolved",
+              "type": "number"
+            },
+            {
+              "selector": "escalated",
+              "text": "Escalated",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "barAlignment": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "piechart",
+      "id": 14,
+      "title": "Probable cause by device type",
+      "description": "Which kind of device was the top-ranked probable cause (for example switch vs end device).",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 23,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/analytics/causes",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "cause_type",
+              "text": "Device type",
+              "type": "string"
+            },
+            {
+              "selector": "incidents",
+              "text": "Incidents",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        }
+      }
+    },
+    {
+      "type": "table",
+      "id": 15,
+      "title": "Top problem devices",
+      "description": "Where to send technicians first: devices most often ranked as the probable cause.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 9,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/analytics/devices",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "device_id",
+              "text": "Device",
+              "type": "string"
+            },
+            {
+              "selector": "device_type",
+              "text": "Type",
+              "type": "string"
+            },
+            {
+              "selector": "site_id",
+              "text": "Site",
+              "type": "string"
+            },
+            {
+              "selector": "times_probable_cause",
+              "text": "Times probable cause",
+              "type": "number"
+            },
+            {
+              "selector": "incidents",
+              "text": "Incidents affected",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "table",
+      "id": 16,
+      "title": "Sites",
+      "description": "One row per customer site/location, from the device records.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 9,
+        "y": 31,
+        "w": 7,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/analytics/sites",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "site_id",
+              "text": "Site",
+              "type": "string"
+            },
+            {
+              "selector": "devices",
+              "text": "Devices",
+              "type": "number"
+            },
+            {
+              "selector": "incidents",
+              "text": "Incidents",
+              "type": "number"
+            },
+            {
+              "selector": "open",
+              "text": "Open",
+              "type": "number"
+            },
+            {
+              "selector": "resolved",
+              "text": "Resolved",
+              "type": "number"
+            },
+            {
+              "selector": "escalated",
+              "text": "Escalated",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "bargauge",
+      "id": 17,
+      "title": "Uptime per device (selected time range)",
+      "description": "Mean of Zabbix ICMP ping over the dashboard time range. 100% = always reachable.",
+      "datasource": {
+        "type": "alexanderzobnin-zabbix-datasource",
+        "uid": "zabbix"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 31,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "alexanderzobnin-zabbix-datasource",
+            "uid": "zabbix"
+          },
+          "queryType": "0",
+          "group": {
+            "filter": "$group"
+          },
+          "host": {
+            "filter": "$host"
+          },
+          "application": {
+            "filter": ""
+          },
+          "itemTag": {
+            "filter": ""
+          },
+          "item": {
+            "filter": "/ICMP ping/"
+          },
+          "functions": [],
+          "options": {
+            "showDisabledItems": false
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.95
+              },
+              {
+                "color": "green",
+                "value": 0.99
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      }
+    },
+    {
+      "type": "row",
+      "id": 18,
+      "title": "Device health (Zabbix) - pick a group and devices above",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "id": 19,
       "title": "Availability",
       "description": "1 = reachable, 0 = down (Zabbix ICMP ping)",
       "datasource": {
@@ -970,7 +1427,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 40,
         "w": 8,
         "h": 8
       },
@@ -1025,7 +1482,7 @@
     },
     {
       "type": "timeseries",
-      "id": 13,
+      "id": 20,
       "title": "Latency",
       "description": "Round-trip time from Zabbix ICMP checks",
       "datasource": {
@@ -1034,7 +1491,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 23,
+        "y": 40,
         "w": 8,
         "h": 8
       },
@@ -1089,7 +1546,7 @@
     },
     {
       "type": "timeseries",
-      "id": 14,
+      "id": 21,
       "title": "Packet loss",
       "description": "ICMP packet loss reported by Zabbix",
       "datasource": {
@@ -1098,7 +1555,7 @@
       },
       "gridPos": {
         "x": 16,
-        "y": 23,
+        "y": 40,
         "w": 8,
         "h": 8
       },

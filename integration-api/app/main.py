@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import httpx
 
-from app import analysis, remediation, zabbix
+from app import analysis, analytics, remediation, zabbix
 from collections.abc import Callable
 
 from app.osticket import OsTicketClient, TicketError
@@ -473,6 +473,34 @@ def create_app(
                 healthy=last.healthy if last else None,
             ))
         return rows
+
+    # ---- Grafana analytics feeds: trends, recovery time, problem devices, causes, sites ----
+
+    @app.get("/grafana/analytics/daily")
+    def grafana_daily() -> list[dict]:
+        """Per UTC day: raw events, incidents created, and how many of those are resolved/escalated."""
+        return analytics.daily(store.list_events(), store.list_incidents())
+
+    @app.get("/grafana/analytics/recovery")
+    def grafana_recovery() -> list[dict]:
+        """Time to recovery per resolved incident, ending at Zabbix's first healthy verification.
+        The mean of `minutes` is MTTR."""
+        return analytics.recovery_times(store.list_incidents(), store.list_verifications())
+
+    @app.get("/grafana/analytics/devices")
+    def grafana_devices() -> list[dict]:
+        """Devices ranked by how often they were the probable cause, then by incidents affecting them."""
+        return analytics.device_rows(store.list_incidents(), store.list_devices())
+
+    @app.get("/grafana/analytics/causes")
+    def grafana_causes() -> list[dict]:
+        """Incidents grouped by the device type of their top-ranked probable cause."""
+        return analytics.cause_types(store.list_incidents(), store.list_devices())
+
+    @app.get("/grafana/analytics/sites")
+    def grafana_sites() -> list[dict]:
+        """Per site (customer location): devices, incidents and their current outcome."""
+        return analytics.site_rows(store.list_incidents(), store.list_devices())
 
     @app.get("/verifications", response_model=list[VerificationResult])
     def list_verifications(incident_id: str | None = None, execution_id: str | None = None) -> list[VerificationResult]:

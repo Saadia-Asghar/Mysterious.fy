@@ -236,3 +236,17 @@ The specification requires a monitoring check after every automated action and a
 - Device-specific trigger names live on the profile.
 - Do not add camera-only fields to the core incident, correlation, or RCA records.
 - Do not change a field after another workstream depends on it without a reviewed note in this file.
+
+## Grafana analytics feeds
+
+Read-only, computed by the integration API from stored records (`integration-api/app/analytics.py`). Grafana only displays them.
+
+| Feed | Row fields |
+|---|---|
+| `GET /grafana/analytics/daily` | `day` (UTC midnight), `raw_events`, `incidents`, `resolved`, `escalated` |
+| `GET /grafana/analytics/recovery` | `incident_id`, `created_at`, `resolved_at` (first healthy Zabbix verification), `minutes` |
+| `GET /grafana/analytics/devices` | `device_id`, `device_type`, `site_id`, `incidents`, `times_probable_cause` |
+| `GET /grafana/analytics/causes` | `cause_type` (device type of the top-ranked cause), `incidents` |
+| `GET /grafana/analytics/sites` | `site_id`, `devices`, `incidents`, `open`, `resolved`, `escalated` |
+
+MTTR is the mean of `recovery.minutes`. Only incidents resolved with a healthy Zabbix verification count. MTTD is not provided because the true fault start time is only known in test scenarios.

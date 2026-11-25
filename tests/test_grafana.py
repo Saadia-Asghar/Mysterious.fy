@@ -133,3 +133,46 @@ def test_grafana_service_installs_both_plugins():
     compose = yaml.safe_load((REPO_ROOT / "docker" / "docker-compose.yml").read_text(encoding="utf-8"))
     plugins = compose["services"]["grafana"]["environment"]["GF_INSTALL_PLUGINS"]
     assert "alexanderzobnin-zabbix-app" in plugins and "yesoreyeram-infinity-datasource" in plugins
+
+
+# ---- analytics feeds -----------------------------------------------------
+
+def test_recovery_time_counts_only_zabbix_confirmed_recovery(env):  # noqa: F811
+    client, state, _, _ = env
+    inc, ex = remediated(client, state)
+    assert client.get("/grafana/analytics/recovery").json() == []  # action done, not yet verified
+    client.post(f"/executions/{ex}/verify")
+    rows = client.get("/grafana/analytics/recovery").json()
+    assert [r["incident_id"] for r in rows] == [inc] and rows[0]["minutes"] >= 0
+
+
+def test_daily_devices_causes_and_sites(env):  # noqa: F811
+    client, _, _, _ = env
+    seed(client)
+    for e in [event("E1", "SWITCH-A", 0), event("E2", "CAM-001", 4), event("E3", "CAM-002", 5),
+              event("E4", "CAM-004", 6)]:
+        client.post("/events", json=e)
+    client.post("/incidents/sync")
+
+    daily = client.get("/grafana/analytics/daily").json()
+    assert sum(d["raw_events"] for d in daily) == 4 and sum(d["incidents"] for d in daily) == 2
+
+    devices = client.get("/grafana/analytics/devices").json()
+    by_id = {d["device_id"]: d for d in devices}
+    assert by_id["SWITCH-A"]["times_probable_cause"] == 1    # the switch outage
+    assert by_id["CAM-001"]["times_probable_cause"] == 0 and by_id["CAM-001"]["incidents"] == 1
+    assert devices[0]["times_probable_cause"] >= devices[-1]["times_probable_cause"]
+    assert {d["device_id"] for d in devices} >= {"SWITCH-A", "CAM-001", "CAM-002", "CAM-004"}
+
+    causes = {c["cause_type"]: c["incidents"] for c in client.get("/grafana/analytics/causes").json()}
+    assert sum(causes.values()) == 2
+
+    sites = client.get("/grafana/analytics/sites").json()
+    assert sum(s["incidents"] for s in sites) >= 2 and all(s["open"] <= s["incidents"] for s in sites)
+
+
+def test_analytics_empty(tmp_path: Path):
+    with TestClient(create_app(Settings(database_path=tmp_path / "a.sqlite",
+                                        profiles_dir=REPO_ROOT / "device-profiles"))) as client:
+        for path in ("daily", "recovery", "devices", "causes", "sites"):
+            assert client.get(f"/grafana/analytics/{path}").json() == []

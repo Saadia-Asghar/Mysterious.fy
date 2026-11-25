@@ -105,6 +105,37 @@ def timeseries(title: str, item_regex: str, x: int, y: int, unit: str, desc: str
     }
 
 
+def nms_panel(kind: str, title: str, path: str, columns, x: int, y: int, w: int, h: int, desc: str,
+              unit: str = "none", options: dict | None = None, custom: dict | None = None) -> dict:
+    """Any NMS-API panel type (stat, timeseries, piechart, bargauge...) over one /grafana feed."""
+    return {
+        "type": kind, "id": pid(), "title": title, "description": desc,
+        "datasource": NMS,
+        "gridPos": {"x": x, "y": y, "w": w, "h": h},
+        "targets": [nms_query(path, columns)],
+        "fieldConfig": {"defaults": {"unit": unit, **({"custom": custom} if custom else {})}, "overrides": []},
+        "options": options or {},
+    }
+
+
+def uptime_gauge(x: int, y: int, w: int, h: int) -> dict:
+    """Uptime % per device over the selected time range: mean of Zabbix ICMP ping (1 up / 0 down)."""
+    return {
+        "type": "bargauge", "id": pid(), "title": "Uptime per device (selected time range)",
+        "description": "Mean of Zabbix ICMP ping over the dashboard time range. 100% = always reachable.",
+        "datasource": ZBX,
+        "gridPos": {"x": x, "y": y, "w": w, "h": h},
+        "targets": [zbx_query("/ICMP ping/")],
+        "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "decimals": 1,
+                                     "thresholds": {"mode": "absolute", "steps": [
+                                         {"color": "red", "value": None}, {"color": "orange", "value": 0.95},
+                                         {"color": "green", "value": 0.99}]}},
+                        "overrides": []},
+        "options": {"reduceOptions": {"calcs": ["mean"], "fields": "", "values": False},
+                    "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": True},
+    }
+
+
 STATUS_COLORS = {"open": "red", "action_pending": "orange", "verifying": "yellow",
                  "resolved": "green", "escalated": "purple"}
 EXEC_COLORS = {"pending": "orange", "running": "yellow", "completed": "blue",
@@ -165,6 +196,42 @@ def build() -> dict:
         16, y, 8, 8,
         "Readings with |robust z| >= 3.5 against the previous 30 readings. Score 0.5 = threshold.",
     ))
+    y += 8
+
+    panels.append(row("Analytics: trends, recovery time, problem devices, sites", y)); y += 1
+    panels.append(nms_panel(
+        "stat", "MTTR (Zabbix-confirmed)", "/grafana/analytics/recovery",
+        [("minutes", "Recovery minutes", "number")], 0, y, 4, 8,
+        "Mean minutes from incident start to Zabbix's first healthy check. Only verified recoveries count.",
+        unit="m", options={"reduceOptions": {"calcs": ["mean"], "fields": "", "values": False},
+                           "colorMode": "value", "graphMode": "none", "textMode": "value"}))
+    panels.append(nms_panel(
+        "timeseries", "Alerts vs incidents per day", "/grafana/analytics/daily",
+        [("day", "Day", "timestamp"), ("raw_events", "Raw alerts", "number"),
+         ("incidents", "Incidents", "number"), ("resolved", "Resolved", "number"),
+         ("escalated", "Escalated", "number")], 4, y, 12, 8,
+        "Per day: raw alerts from monitoring vs the incidents they were grouped into, and their outcome.",
+        custom={"drawStyle": "bars", "fillOpacity": 60, "barAlignment": 0},
+        options={"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}}))
+    panels.append(nms_panel(
+        "piechart", "Probable cause by device type", "/grafana/analytics/causes",
+        [("cause_type", "Device type", "string"), ("incidents", "Incidents", "number")], 16, y, 8, 8,
+        "Which kind of device was the top-ranked probable cause (for example switch vs end device).",
+        options={"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": True},
+                 "pieType": "donut", "legend": {"displayMode": "table", "placement": "right",
+                                                "values": ["value", "percent"]}}))
+    y += 8
+    panels.append(table(
+        "Top problem devices", "/grafana/analytics/devices",
+        [("device_id", "Device", "string"), ("device_type", "Type", "string"), ("site_id", "Site", "string"),
+         ("times_probable_cause", "Times probable cause", "number"), ("incidents", "Incidents affected", "number")],
+        0, y, 9, 8, "Where to send technicians first: devices most often ranked as the probable cause."))
+    panels.append(table(
+        "Sites", "/grafana/analytics/sites",
+        [("site_id", "Site", "string"), ("devices", "Devices", "number"), ("incidents", "Incidents", "number"),
+         ("open", "Open", "number"), ("resolved", "Resolved", "number"), ("escalated", "Escalated", "number")],
+        9, y, 7, 8, "One row per customer site/location, from the device records."))
+    panels.append(uptime_gauge(16, y, 8, 8))
     y += 8
 
     panels.append(row("Device health (Zabbix) - pick a group and devices above", y)); y += 1
