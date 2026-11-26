@@ -11,9 +11,14 @@ from uuid import uuid4
 
 import httpx
 
+import asyncio
+import logging
 import secrets
 
 from app import analysis, analytics, portal, remediation, zabbix
+from app.zabbix_provision import ZabbixProvisioner
+
+log = logging.getLogger("nms")
 from collections.abc import Callable
 
 from app.osticket import OsTicketClient, TicketError
@@ -69,17 +74,43 @@ def create_app(
         )
     profiles = ProfileCatalog(settings.profiles_dir)
     portal_store = portal.PortalStore(store)
+    provisioner = ZabbixProvisioner(zabbix_api, store) if zabbix_api is not None else None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         store.init()
         portal_store.init()
+        if provisioner:
+            provisioner.init()
         profiles.load()
         playbooks.load()
         app.state.settings = settings
         app.state.store = store
         app.state.profiles = profiles
+        task = asyncio.create_task(_auto_loop()) if settings.auto_sync_seconds > 0 else None
         yield
+        if task:
+            task.cancel()
+
+    async def _auto_loop() -> None:
+        """Keep incidents live without anyone pressing a button: correlate new events, verify
+        remediations, and close incidents whose devices Zabbix sees healthy again."""
+        while True:
+            await asyncio.sleep(settings.auto_sync_seconds)
+            try:
+                await asyncio.to_thread(_auto_cycle)
+            except Exception as exc:  # keep the loop alive; the next cycle retries
+                log.warning("auto sync cycle failed: %s", exc)
+
+    def _auto_cycle() -> None:
+        sync_incidents()
+        if zabbix_api is not None:
+            for execution in _awaiting_verification():
+                try:
+                    _verify_with_zabbix(execution)
+                except HTTPException as exc:
+                    log.warning("verification of %s failed: %s", execution.execution_id, exc.detail)
+            recovery_sweep()
 
     app = FastAPI(
         title="NMS Integration Service",
@@ -89,7 +120,7 @@ def create_app(
     )
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     secret = (settings.portal_secret or secrets.token_hex(32)).encode()
-    app.include_router(portal.make_router(store, portal_store, profiles, secret))
+    app.include_router(portal.make_router(store, portal_store, profiles, secret, provisioner))
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     def console() -> str:
@@ -296,7 +327,20 @@ def create_app(
         created, updated = [], []
         tickets: list[TicketMapping] = []
         errors: dict[str, str] = {}
+        # Live alerts arrive seconds apart, so an early sync can persist a partial incident
+        # (one camera) before the rest of the outage arrives. When a newer analysis contains
+        # every event of a stored, unresolved incident, it continues that incident (same ID,
+        # same ticket) instead of opening a duplicate.
+        stored = {i.incident_id: set(i.event_ids) for i in store.list_incidents() if i.status != "resolved"}
+        claimed: set[str] = set()
         for inc in analysis.analyze(store.list_events(), store.list_edges(), window_seconds, method):
+            if inc.incident_id not in stored:
+                subsets = [sid for sid, evs in stored.items()
+                           if sid not in claimed and evs and evs <= set(inc.event_ids)]
+                if subsets:
+                    keep = max(subsets, key=lambda sid: len(stored[sid]))
+                    inc = inc.model_copy(update={"incident_id": keep})
+            claimed.add(inc.incident_id)
             (created if store.upsert_incident(inc, now) else updated).append(inc.incident_id)
             if ticket_provider is None or store.get_ticket_mapping(inc.incident_id) is not None:
                 continue
@@ -410,6 +454,29 @@ def create_app(
     def verification_sweep() -> list[VerifyOutcome]:
         """Verify every incident in `verifying`. Call periodically (e.g. every 30 s)."""
         return [_verify_with_zabbix(e) for e in _awaiting_verification()]
+
+    @app.post("/monitoring/recovery-sweep")
+    def recovery_sweep() -> dict[str, list[str]]:
+        """Close incidents that recovered on their own (power came back, cable reconnected):
+        an open or escalated incident becomes `resolved` only when Zabbix reports no open
+        problem for every affected device. Devices Zabbix does not monitor are never assumed
+        healthy, so their incidents stay open."""
+        if zabbix_api is None:
+            raise HTTPException(status_code=503, detail="Zabbix API is not configured (NMS_ZABBIX_API_URL/TOKEN)")
+        resolved, still_open = [], []
+        for inc in store.list_incidents():
+            if inc.status not in ("open", "escalated"):
+                continue
+            try:
+                healthy = all(not zabbix_api.open_problems(d) for d in inc.affected_devices)
+            except ZabbixApiError:
+                continue  # not monitored by Zabbix (e.g. demo data): never auto-resolve
+            if healthy:
+                store.set_incident_status(inc.incident_id, "resolved", _now())
+                resolved.append(inc.incident_id)
+            else:
+                still_open.append(inc.incident_id)
+        return {"resolved": resolved, "still_open": still_open}
 
     # ---- Grafana feeds (M13): flat, read-only tables for the Infinity data source ----
 

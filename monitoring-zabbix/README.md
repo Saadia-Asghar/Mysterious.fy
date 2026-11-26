@@ -19,7 +19,7 @@ Zabbix owns metrics, triggers, problems and post-remediation health verification
 4. Alerts → Actions → Trigger actions → Create: condition *Tag name equals `nms_event_type`*, operation and recovery operation *Send message* via `NMS Integration`.
 5. Optional: set `NMS_ZABBIX_WEBHOOK_TOKEN` for the API and the global macro `{$NMS.WEBHOOK.TOKEN}` to the same value.
 
-Status: route implemented and unit-tested (`tests/test_zabbix_events.py`). End-to-end from a live Zabbix is not verified yet (needs M1 running).
+Status: verified end to end with a live Zabbix 7.0 on 2026-11-26. `scripts/zabbix_bootstrap.py` does steps 1–5 automatically; see [docs/live-monitoring.md](../docs/live-monitoring.md).
 
 ## Verification after remediation (M12)
 

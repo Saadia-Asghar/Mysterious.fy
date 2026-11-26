@@ -9,8 +9,21 @@
 //   nms_event_type {EVENT.TAGS.nms_event_type}
 //   severity       {EVENT.NSEVERITY}
 //   value          {EVENT.VALUE}          (1 = problem, 0 = recovery)
-//   clock          {EVENT.TIMESTAMP}
+//   event_date     {EVENT.DATE}           (e.g. 2026.11.26, Zabbix server time zone; the image uses UTC)
+//   event_time     {EVENT.TIME}           (e.g. 11:10:52)
+//   (Older setups may still pass clock = {EVENT.TIMESTAMP}; it is used when it is a number.)
 // Scope: Problem and Recovery operations.
+function eventClock(p) {
+    if (p.clock && /^\d+$/.test(p.clock)) {
+        return p.clock;
+    }
+    var d = /^(\d{4})\.(\d{2})\.(\d{2})$/.exec(p.event_date || '');
+    var t = /^(\d{2}):(\d{2}):(\d{2})$/.exec(p.event_time || '');
+    if (d && t) {
+        return String(Math.floor(Date.UTC(+d[1], +d[2] - 1, +d[3], +t[1], +t[2], +t[3]) / 1000));
+    }
+    return String(Math.floor(Date.now() / 1000));  // macro not resolved: use the send time
+}
 try {
     var p = JSON.parse(value);
     var body = {
@@ -19,7 +32,7 @@ try {
         nms_event_type: p.nms_event_type,
         severity: p.severity,
         value: p.value,
-        clock: p.clock
+        clock: eventClock(p)
     };
     var req = new HttpRequest();
     req.addHeader('Content-Type: application/json');

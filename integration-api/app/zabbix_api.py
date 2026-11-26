@@ -39,6 +39,10 @@ class ZabbixApiClient:
             raise ZabbixApiError(f"Zabbix API error: {err.get('message')} {err.get('data', '')}".strip())
         return data["result"]
 
+    def call(self, method: str, params: dict) -> object:
+        """Any Zabbix API method (used by host provisioning and the bootstrap script)."""
+        return self._call(method, params)
+
     def open_problems(self, host: str) -> list[dict]:
         hosts = self._call("host.get", {"filter": {"host": [host]}, "output": ["hostid"]})
         if not hosts:

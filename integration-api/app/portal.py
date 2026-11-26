@@ -107,6 +107,8 @@ class PortalDevice(Device):
     status: Literal["ok", "problem", "disabled"]
     open_incidents: int
     parent_device_id: str | None = None
+    monitoring: str = "off"  # off | not_synced | monitored | paused | skipped | error
+    monitoring_error: str | None = None
 
 
 class Overview(BaseModel):
@@ -317,7 +319,8 @@ class PortalStore:
 
 
 # ---------- router ----------
-def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, secret: bytes) -> APIRouter:
+def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, secret: bytes,
+                provisioner=None) -> APIRouter:
     router = APIRouter(prefix="/portal", tags=["portal"])
 
     def current_user(authorization: str | None = Header(default=None)) -> User:
@@ -351,15 +354,30 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
             if inc.status in OPEN_STATUSES:
                 for d in inc.affected_devices:
                     open_count[d] = open_count.get(d, 0) + 1
+        links = provisioner.links() if provisioner else {}
         out = []
         for d in store.list_devices():
             if d.organization_id != org_id:
                 continue
             n = open_count.get(d.device_id, 0)
             status = "disabled" if not d.enabled else ("problem" if n else "ok")
+            link = links.get(d.device_id)
             out.append(PortalDevice(**d.model_dump(), status=status, open_incidents=n,
-                                    parent_device_id=parents.get(d.device_id)))
+                                    parent_device_id=parents.get(d.device_id),
+                                    monitoring=(link["status"] if link else "not_synced") if provisioner else "off",
+                                    monitoring_error=link["error"] if link else None))
         return out
+
+    def sync_monitoring(org_id: str, device: Device, user) -> None:
+        """Create/update the device's Zabbix host. Never blocks saving the device."""
+        if provisioner is None:
+            return
+        result = provisioner.sync(device, org_id, device.site_id)
+        if result == "error":
+            portal.audit(org_id, user, "monitoring.sync_failed", device.device_id,
+                         provisioner.links().get(device.device_id, {}).get("error") or "")
+        else:
+            portal.audit(org_id, user, "monitoring.synced", device.device_id, result)
 
     def owned_device(org_id: str, device_id: str) -> Device:
         d = store.get_device(device_id)
@@ -560,7 +578,17 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
             store.insert_edge(TopologyEdge(from_device_id=device.device_id, to_device_id=body.parent_device_id))
         portal.audit(org_id, user, "device.created", device.device_id,
                      f"{device.device_type} at {device.site_id}")
+        sync_monitoring(org_id, device, user)
         return one_device(org_id, device.device_id)
+
+    @router.post("/devices/{device_id}/monitoring-sync", response_model=PortalDevice)
+    def resync_device(device_id: str, scope=Depends(org_scope)) -> PortalDevice:
+        user, org_id = scope
+        need_write(user)
+        if provisioner is None:
+            raise HTTPException(status_code=503, detail="Zabbix is not configured on this server")
+        sync_monitoring(org_id, owned_device(org_id, device_id), user)
+        return one_device(org_id, device_id)
 
     @router.patch("/devices/{device_id}", response_model=PortalDevice)
     def edit_device(device_id: str, body: PortalDeviceUpdate, scope=Depends(org_scope)) -> PortalDevice:
@@ -575,6 +603,7 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         diff = ", ".join(f"{k}: {before.get(k)} -> {v}" for k, v in changes.items() if before.get(k) != v)
         if diff:
             portal.audit(org_id, user, "device.updated", device_id, diff)
+            sync_monitoring(org_id, owned_device(org_id, device_id), user)
         return one_device(org_id, device_id)
 
     from app import admin, ticketing  # local import: both build on this module's helpers

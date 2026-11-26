@@ -253,26 +253,34 @@ def register(router: APIRouter, store, portal, current_user, org_scope, org_devi
         teams_by_name = {r["name"].lower(): r["team_id"]
                          for r in q("SELECT team_id, name FROM teams WHERE organization_id=? AND active=1", (org_id,))}
         existing = {r["incident_id"]: r for r in q(
-            "SELECT ticket_id, incident_id, status FROM tickets WHERE organization_id=? AND incident_id IS NOT NULL",
+            "SELECT ticket_id, incident_id, status, title FROM tickets WHERE organization_id=? AND incident_id IS NOT NULL",
             (org_id,))}
         for inc in store.list_incidents():
             mine = [d for d in inc.affected_devices if d in devices]
             if not mine:
                 continue
+            causes = [c.device_id for c in inc.rca.ranked_causes if c.device_id in devices]
+            cause = causes[0] if causes else mine[0]
+            title = f"{inc.incident_id}: {len(inc.affected_devices)} device(s) affected, probable cause {cause}"
+            description = (f"Opened automatically from monitoring. Affected: {', '.join(inc.affected_devices)}. "
+                           f"Correlation: {inc.correlation.reason}")
             t = existing.get(inc.incident_id)
             if t is None and inc.status in OPEN_INCIDENT:
-                causes = [c.device_id for c in inc.rca.ranked_causes if c.device_id in devices]
-                cause = causes[0] if causes else mine[0]
                 dev = devices[cause]
                 created = inc.created_at if inc.created_at.tzinfo else inc.created_at.replace(tzinfo=timezone.utc)
                 tid = insert_ticket(
-                    org_id, None, f"{inc.incident_id}: {len(inc.affected_devices)} device(s) affected, probable cause {cause}",
-                    f"Opened automatically from monitoring. Affected: {', '.join(inc.affected_devices)}. "
-                    f"Correlation: {inc.correlation.reason}", SEVERITY_PRIORITY.get(inc.severity, "low"), "incident",
+                    org_id, None, title, description, SEVERITY_PRIORITY.get(inc.severity, "low"), "incident",
                     device_id=dev.device_id, incident_id=inc.incident_id,
                     team_id=teams_by_name.get(dev.responsible_team.lower()), created_at=created)
                 portal.audit(org_id, None, "ticket.opened_from_incident", f"T-{tid}", inc.incident_id)
-            elif t is not None and inc.status == "resolved" and t["status"] in OPEN_TICKET:
+            elif t is not None and t["status"] in OPEN_TICKET and t["title"] != title:
+                # Later alerts widened the incident (e.g. the switch behind the camera): keep the
+                # ticket in step and say so in its history.
+                portal._exec("UPDATE tickets SET title=?, description=?, device_id=?, updated_at=? WHERE ticket_id=?",
+                             (title, description, cause, iso(utcnow()), t["ticket_id"]))
+                log(t["ticket_id"], org_id, None, "details",
+                    {"from": t["title"], "to": title, "reason": "monitoring added related alerts"})
+            if t is not None and inc.status == "resolved" and t["status"] in OPEN_TICKET:
                 ts = iso(utcnow())
                 portal._exec("UPDATE tickets SET status='resolved', resolved_at=?, updated_at=?,"
                              " first_response_at=COALESCE(first_response_at, ?) WHERE ticket_id=?",

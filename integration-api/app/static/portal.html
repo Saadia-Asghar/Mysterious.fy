@@ -230,11 +230,16 @@ const pages = {
       const q = $("#q").value.toLowerCase(), si = $("#site").value, ty = $("#type").value, st = $("#status").value;
       const rows = all.filter(d => (!q || d.device_id.toLowerCase().includes(q) || d.name.toLowerCase().includes(q))
         && (!si || d.site_id === si) && (!ty || d.device_type === ty) && (!st || d.status === st));
-      $("#list").innerHTML = rows.length ? `<table><tr><th>Status</th><th>ID</th><th>Name</th><th>Type</th><th>Site</th><th>Parent</th><th>Policy</th><th>Incidents</th><th></th></tr>
+      $("#list").innerHTML = rows.length ? `<table><tr><th>Status</th><th>ID</th><th>Name</th><th>Type</th><th>Site</th><th>Parent</th><th>Policy</th><th>Monitoring</th><th>Incidents</th><th></th></tr>
         ${rows.map(d => `<tr><td>${pill(d.status)}</td><td>${esc(d.device_id)}</td><td>${esc(d.name)}</td><td>${esc(d.device_type.replace(/_/g," "))}</td>
           <td>${esc(siteName[d.site_id] || d.site_id)}</td><td>${esc(d.parent_device_id || "")}</td><td>${esc(d.automation_policy.replace(/_/g," "))}</td>
-          <td class="num">${d.open_incidents}</td><td>${canWrite() ? `<a href="#/devices/edit?id=${encodeURIComponent(d.device_id)}">Edit</a>` : ""}</td></tr>`).join("")}</table>
-        <p class="hint">${rows.length} of ${all.length} devices</p>` : `<div class="empty">No devices match.</div>`;
+          <td title="${esc(d.monitoring_error || "")}">${tag({ monitored: "good", paused: "info", error: "critical", skipped: "info", not_synced: "attention", off: "info" }[d.monitoring] || "info", d.monitoring.replace("_", " "))}</td>
+          <td class="num">${d.open_incidents}</td><td style="white-space:nowrap">${canWrite() ? `<a href="#/devices/edit?id=${encodeURIComponent(d.device_id)}">Edit</a>` : ""}
+          ${canWrite() && ["error", "not_synced"].includes(d.monitoring) ? ` · <button class="link" data-sync="${esc(d.device_id)}">Sync to Zabbix</button>` : ""}</td></tr>`).join("")}</table>
+        <p class="hint">${rows.length} of ${all.length} devices. "Monitored" means Zabbix is checking it right now.</p>` : `<div class="empty">No devices match.</div>`;
+      document.querySelectorAll("[data-sync]").forEach(b => b.onclick = async () => {
+        try { const d = await api(`/devices/${encodeURIComponent(b.dataset.sync)}/monitoring-sync`, { method: "POST" });
+          Object.assign(all.find(x => x.device_id === d.device_id), d); draw(); } catch (e) { showErr(e); } });
     };
     ["q","site","type","status"].forEach(id => $("#" + id).oninput = draw);
     draw();
