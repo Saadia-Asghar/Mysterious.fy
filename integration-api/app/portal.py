@@ -20,7 +20,7 @@ from app.profiles import ProfileCatalog
 from app.schemas import Device, Identifier, Policy, TopologyEdge
 from app.store import DeviceAlreadyExists, Store
 
-Role = Literal["super_admin", "admin", "operator", "viewer"]
+Role = Literal["super_admin", "admin", "operator", "technician", "viewer"]
 WRITE_ROLES = {"super_admin", "admin"}
 TOKEN_TTL_SECONDS = 12 * 3600
 OPEN_STATUSES = {"open", "action_pending", "verifying", "escalated"}
@@ -191,9 +191,37 @@ class PortalStore:
                 );
                 """
             )
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    organization_id TEXT NOT NULL,
+                    actor_id INTEGER,
+                    actor_name TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    detail TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL
+                );
+                -- append-only: the activity log can never be edited or deleted
+                CREATE TRIGGER IF NOT EXISTS audit_log_no_update BEFORE UPDATE ON audit_log
+                    BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END;
+                CREATE TRIGGER IF NOT EXISTS audit_log_no_delete BEFORE DELETE ON audit_log
+                    BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END;
+                CREATE INDEX IF NOT EXISTS audit_org ON audit_log(organization_id, audit_id);
+                """
+            )
             cols = {r[1] for r in conn.execute("PRAGMA table_info(organizations)")}
             if "active" not in cols:  # databases created before company suspension existed
                 conn.execute("ALTER TABLE organizations ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
+
+    def audit(self, org_id: str, actor, action: str, target: str, detail: str = "") -> None:
+        """Record who did what. actor is a User, or None for the system (monitoring, sync)."""
+        from datetime import datetime, timezone
+        self._exec("INSERT INTO audit_log (organization_id, actor_id, actor_name, action, target, detail, created_at)"
+                   " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                   (org_id, getattr(actor, "user_id", None), getattr(actor, "full_name", "NMS system"),
+                    action, target, detail, datetime.now(timezone.utc).replace(microsecond=0).isoformat()))
 
     def org_active(self, org_id: str) -> bool:
         rows = self._all("SELECT active FROM organizations WHERE organization_id = ?", (org_id,))
@@ -422,7 +450,9 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         need_write(user)
         if portal.get_site(org_id, body.site_id):
             raise HTTPException(status_code=409, detail=f"Site {body.site_id} exists")
-        return portal.add_site(org_id, body)
+        site = portal.add_site(org_id, body)
+        portal.audit(org_id, user, "site.created", body.site_id, body.name)
+        return site
 
     @router.put("/sites/{site_id}", response_model=Site)
     def edit_site(site_id: str, body: SiteIn, scope=Depends(org_scope)) -> Site:
@@ -440,11 +470,13 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         if any(d.site_id == site_id for d in org_devices(org_id)):
             raise HTTPException(status_code=409, detail="Move or remove the site's devices first")
         portal.delete_site(org_id, site_id)
+        portal.audit(org_id, user, "site.deleted", site_id)
 
     # users
     @router.get("/users", response_model=list[User])
     def list_users(scope=Depends(org_scope)) -> list[User]:
-        need_write(scope[0])
+        if scope[0].role not in WRITE_ROLES | {"operator"}:  # operators need the list to assign tickets
+            raise HTTPException(status_code=403, detail="Admin or operator role required")
         return portal.list_users(scope[1])
 
     # Accounts are issued by us (platform staff) only: we create each login and give the
@@ -459,7 +491,9 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         need_staff(user)
         if portal.find_user(body.email):
             raise HTTPException(status_code=409, detail="Email already used")
-        return portal.add_user(org_id, body)
+        new = portal.add_user(org_id, body)
+        portal.audit(org_id, user, "user.created", new.email, new.role)
+        return new
 
     @router.post("/users/{user_id}/password", status_code=204)
     def reset_password(user_id: int, body: PasswordIn, scope=Depends(org_scope)) -> None:
@@ -469,6 +503,7 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         if target is None or target.organization_id != org_id:
             raise HTTPException(status_code=404, detail="Unknown user")
         portal.set_password(user_id, body.password)
+        portal.audit(org_id, user, "user.password_reset", target.email)
 
     @router.delete("/users/{user_id}", status_code=204)
     def remove_user(user_id: int, scope=Depends(org_scope)) -> None:
@@ -476,7 +511,10 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         need_staff(user)
         if user_id == user.user_id:
             raise HTTPException(status_code=409, detail="You cannot remove yourself")
+        target = portal.get_user(user_id)
         portal.deactivate_user(org_id, user_id)
+        if target and target.organization_id == org_id:
+            portal.audit(org_id, user, "user.deactivated", target.email, "kept on record, sign-in disabled")
 
     # devices
     @router.get("/devices", response_model=list[PortalDevice])
@@ -520,6 +558,8 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
             raise HTTPException(status_code=409, detail=f"Device {device.device_id} already exists") from None
         if body.parent_device_id:
             store.insert_edge(TopologyEdge(from_device_id=device.device_id, to_device_id=body.parent_device_id))
+        portal.audit(org_id, user, "device.created", device.device_id,
+                     f"{device.device_type} at {device.site_id}")
         return one_device(org_id, device.device_id)
 
     @router.patch("/devices/{device_id}", response_model=PortalDevice)
@@ -531,8 +571,13 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         if "site_id" in changes and portal.get_site(org_id, changes["site_id"]) is None:
             raise HTTPException(status_code=422, detail=f"Unknown site {changes['site_id']}")
         portal.update_device(current.model_copy(update=changes))
+        before = current.model_dump()
+        diff = ", ".join(f"{k}: {before.get(k)} -> {v}" for k, v in changes.items() if before.get(k) != v)
+        if diff:
+            portal.audit(org_id, user, "device.updated", device_id, diff)
         return one_device(org_id, device_id)
 
-    from app import admin  # local import: admin builds on this module's helpers
+    from app import admin, ticketing  # local import: both build on this module's helpers
     admin.register(router, store, portal, current_user, org_scope, org_devices)
+    ticketing.register(router, store, portal, current_user, org_scope, org_devices)
     return router

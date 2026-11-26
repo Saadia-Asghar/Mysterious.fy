@@ -15,3 +15,5 @@ __pycache__/
 *.log
 data/
 volumes/
+backups/
+*.before-restore-*

@@ -119,10 +119,12 @@ function authPage(title, body) {
 }
 
 function shell(active, title, html) {
-  const links = [["overview","Overview"],["sites","Sites"],["devices","Devices"]];
-  if (canWrite()) links.push(["devices/new","Add device"], ["users","Users"]);
+  const links = [["overview","Overview"],["tickets","Tickets"],["sites","Sites"],["devices","Devices"]];
+  if (canWrite()) links.push(["devices/new","Add device"], ["teams","Teams"], ["users","Users"]);
+  if (me.role !== "technician") links.push(["reports","Reports & data"]);
+  if (canWrite()) links.push(["activity","Activity log"]);
   links.push(["support", me.role === "super_admin" ? "Support inbox" : "Support"]);
-  const adminLinks = me.role === "super_admin" ? [["platform","All companies"],["notices","Notices"]] : [];
+  const adminLinks = me.role === "super_admin" ? [["platform","All companies"],["notices","Notices"],["platform-activity","All activity"]] : [];
   $("#root").innerHTML = `<div class="shell"><nav>
       <div class="brand">NMS Portal</div><div class="org" id="orgname"></div>
       ${links.map(([h,l]) => `<a href="#/${h}" class="${active===h?"active":""}">${l}</a>`).join("")}
@@ -222,6 +224,7 @@ const pages = {
     $("#site").innerHTML += sites.map(s => `<option value="${esc(s.site_id)}">${esc(s.name)}</option>`).join("");
     $("#type").innerHTML += [...new Set(all.map(d => d.device_type))].sort().map(t => `<option value="${esc(t)}">${esc(t.replace(/_/g," "))}</option>`).join("");
     if (params.get("site")) $("#site").value = params.get("site");
+    if (params.get("q")) $("#q").value = params.get("q");
     const siteName = Object.fromEntries(sites.map(s => [s.site_id, s.name]));
     const draw = () => {
       const q = $("#q").value.toLowerCase(), si = $("#site").value, ty = $("#type").value, st = $("#status").value;
@@ -252,10 +255,10 @@ const pages = {
     shell("users", "Users", `<div class="panel"><form class="grid" id="f">
         <label>Full name<input name="full_name" required></label><label>Email<input name="email" type="email" required></label>
         <label>Temporary password<input name="password" type="password" minlength="8" required></label>
-        <label>Role<select name="role"><option value="operator">Operator</option><option value="viewer">Viewer</option><option value="admin">Admin</option>
+        <label>Role<select name="role"><option value="operator">Operator</option><option value="technician">Technician</option><option value="viewer">Viewer</option><option value="admin">Admin</option>
           ${me.role === "super_admin" ? `<option value="super_admin">Super admin</option>` : ""}</select></label>
         <div style="align-self:end"><button class="primary">Add user</button></div></form>
-        <p class="hint">Admin: manage sites, devices and users. Operator: handle incidents. Viewer: read only.</p></div>
+        <p class="hint">Admin: sites, devices, teams, reports. Operator: assign and work all tickets. Technician: works only tickets of their own teams or assigned to them. Viewer: read only.</p></div>
       <h2>People</h2><div class="panel table-wrap" id="list">Loading</div>`);
     const load = async () => {
       const users = await api("/users");
@@ -391,8 +394,167 @@ Password: ${esc(d.admin_password)}</p><span class="hint">Shown once. Ask them to
       try { await api("/admin/notices", { method: "POST", body: JSON.stringify(d) }); e.target.reset(); showErr(""); load(); } catch (err) { showErr(err); } };
     await load();
   },
+
+  async tickets(params) {
+    const view = params.get("view") || (me.role === "technician" ? "my_teams" : "open");
+    const views = [["open","All open"],["mine","Assigned to me"],["my_teams","My teams"],["unassigned","Unassigned"],["overdue","Overdue"],["all","All, incl. closed"]];
+    shell("tickets", "Tickets", `<div class="bar">${views.map(([v, l]) => `<a href="#/tickets?view=${v}"><button class="${v === view ? "primary" : ""}">${l}</button></a>`).join("")}
+        <span class="grow"></span>${me.role !== "viewer" ? `<a href="#/tickets/new"><button class="primary">New ticket</button></a>` : ""}</div>
+      <div class="panel table-wrap" id="list">Loading</div>
+      <p class="hint">Tickets open automatically for every incident from monitoring and go to the team named in the device's "Responsible team". Nothing is ever deleted; closed tickets stay in history and reports.</p>`);
+    const ts = await api("/tickets?view=" + view);
+    $("#list").innerHTML = ts.length ? `<table><tr><th>#</th><th>Status</th><th>Priority</th><th>Title</th><th>Team</th><th>Assignee</th><th>Device</th><th>SLA</th><th>Opened</th></tr>
+      ${ts.map(t => `<tr><td class="num">T-${t.ticket_id}</td><td>${tag(t.status, t.status.replace("_"," "))}</td><td>${tag(t.priority, t.priority)}</td>
+        <td><a href="#/tickets/view?id=${t.ticket_id}">${esc(t.title)}</a>${t.source === "incident" ? ` <span class="hint">· from monitoring</span>` : ""}</td>
+        <td>${esc(t.team_name || "—")}</td><td>${esc(t.assignee_name || "—")}</td><td>${esc(t.device_id || "")}</td>
+        <td>${slaTag(t)}</td><td>${esc(when(t.created_at))}</td></tr>`).join("")}</table><p class="hint">${ts.length} tickets</p>`
+      : `<div class="empty">No tickets in this view.</div>`;
+  },
+
+  async "tickets/new"() {
+    shell("tickets", "New ticket", `<div class="panel"><form class="grid" id="f">
+        <label class="wide">Title<input name="title" required minlength="3" placeholder="Replace damaged camera at parking gate"></label>
+        <label>Priority<select name="priority"><option value="normal">Normal (respond 4h, fix 24h)</option><option value="low">Low (8h / 72h)</option>
+          <option value="high">High (1h / 8h)</option><option value="urgent">Urgent (15 min / 4h)</option></select></label>
+        <label>Device<select name="device_id" id="dev"><option value="">None</option></select></label>
+        <label>Team<select name="team_id" id="team"><option value="">Unassigned</option></select></label>
+        <label>Assignee<select name="assignee_id" id="who"><option value="">Nobody yet</option></select></label>
+        <label class="wide">Details<textarea name="description"></textarea></label>
+        <div><button class="primary">Create ticket</button></div></form></div>`);
+    const [devs, teams, users] = await Promise.all([api("/devices"), api("/teams"), canWrite() || me.role === "operator" ? api("/users").catch(() => []) : []]);
+    $("#dev").innerHTML += devs.map(d => `<option value="${esc(d.device_id)}">${esc(d.device_id)} · ${esc(d.name)}</option>`).join("");
+    $("#team").innerHTML += teams.filter(t => t.active).map(t => `<option value="${t.team_id}">${esc(t.name)}</option>`).join("");
+    $("#who").innerHTML += users.filter(u => u.role !== "viewer").map(u => `<option value="${u.user_id}">${esc(u.full_name)}</option>`).join("");
+    $("#f").onsubmit = async e => { e.preventDefault(); const d = formData(e.target);
+      for (const k of ["device_id", "team_id", "assignee_id"]) if (!d[k]) delete d[k]; else if (k !== "device_id") d[k] = +d[k];
+      try { const t = await api("/tickets", { method: "POST", body: JSON.stringify(d) }); location.hash = "#/tickets/view?id=" + t.ticket_id; } catch (err) { showErr(err); } };
+  },
+
+  async "tickets/view"(params) {
+    const id = params.get("id");
+    shell("tickets", `Ticket T-${esc(id)}`, `<div id="c" class="empty">Loading</div>`);
+    const manager = ["super_admin", "admin", "operator"].includes(me.role), worker = me.role !== "viewer";
+    const [t, teams, users] = await Promise.all([api("/tickets/" + encodeURIComponent(id)), manager ? api("/teams") : [],
+      manager ? api("/users").catch(() => []) : []]);
+    const st = ["new","assigned","in_progress","waiting","resolved","closed"];
+    const monitoringOpen = t.incident_id && t.incident_status && t.incident_status !== "resolved";
+    $("#c").outerHTML = `<div class="panel"><b>${esc(t.title)}</b>
+        <p class="hint">${tag(t.status, t.status.replace("_"," "))} ${tag(t.priority, t.priority)} ${slaTag(t)} · opened ${esc(when(t.created_at))} by ${esc(t.created_by)}
+          ${t.device_id ? ` · device <a href="#/devices?q=${encodeURIComponent(t.device_id)}">${esc(t.device_id)}</a>` : ""}
+          ${t.incident_id ? ` · incident ${esc(t.incident_id)} (${esc(t.incident_status || "?")})` : ""}</p>
+        ${t.description ? `<p style="white-space:pre-wrap">${esc(t.description)}</p>` : ""}
+        <p class="hint">Respond by ${esc(when(t.response_due))}${t.first_response_at ? ` (responded ${esc(when(t.first_response_at))})` : ""} · fix by ${esc(when(t.resolve_due))}${t.resolved_at ? ` (resolved ${esc(when(t.resolved_at))})` : ""}</p>
+        ${monitoringOpen ? `<p class="err">Monitoring has not confirmed recovery yet. The incident stays open until Zabbix sees the device healthy, even if this ticket is marked resolved.</p>` : ""}
+      </div>
+      ${worker ? `<div class="panel" style="margin-top:12px"><form class="grid" id="uf">
+        <label>Status<select name="status">${st.map(s => `<option value="${s}" ${s === t.status ? "selected" : ""}>${s.replace("_"," ")}</option>`).join("")}</select></label>
+        ${manager ? `<label>Priority<select name="priority">${["low","normal","high","urgent"].map(p => `<option ${p === t.priority ? "selected" : ""}>${p}</option>`).join("")}</select></label>
+        <label>Team<select name="team_id"><option value="">—</option>${teams.filter(x => x.active).map(x => `<option value="${x.team_id}" ${x.team_id === t.team_id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>
+        <label>Assignee<select name="assignee_id"><option value="">—</option>${users.filter(u => u.role !== "viewer").map(u => `<option value="${u.user_id}" ${u.user_id === t.assignee_id ? "selected" : ""}>${esc(u.full_name)}</option>`).join("")}</select></label>` : ""}
+        <div style="align-self:end"><button class="primary">Save</button></div></form></div>` : ""}
+      <h2>History</h2>${t.history.map(h => `<div class="msg ${h.kind === "comment" ? "" : "staff"}"><div class="who">${esc(h.actor_name)} · ${esc(when(h.created_at))}</div><p>${esc(describe(h))}</p></div>`).join("")}
+      ${worker ? `<div class="panel"><form id="cf"><label>Add a note<textarea name="body" required placeholder="What you checked or did"></textarea></label><p><button class="primary">Add note</button></p></form></div>` : ""}`;
+    if ($("#uf")) $("#uf").onsubmit = async e => { e.preventDefault(); const d = formData(e.target); const body = { status: d.status };
+      if (manager) { body.priority = d.priority;
+        if (d.team_id) body.team_id = +d.team_id; if (d.assignee_id) body.assignee_id = +d.assignee_id;
+        if (!d.team_id && !d.assignee_id && (t.team_id || t.assignee_id)) body.unassign = true; }
+      try { await api("/tickets/" + id, { method: "PATCH", body: JSON.stringify(body) }); route(); } catch (err) { showErr(err); } };
+    if ($("#cf")) $("#cf").onsubmit = async e => { e.preventDefault();
+      try { await api(`/tickets/${id}/comments`, { method: "POST", body: JSON.stringify(formData(e.target)) }); route(); } catch (err) { showErr(err); } };
+  },
+
+  async teams() {
+    shell("teams", "Teams", `<div class="panel"><form class="grid" id="f">
+        <label>Team name<input name="name" required placeholder="cctv-team"></label><label>Description<input name="description" placeholder="Camera technicians, north sites"></label>
+        <div style="align-self:end"><button class="primary">Add team</button></div></form>
+        <p class="hint">Tip: use the same name as a device's "Responsible team" and incidents on that device go straight to this team.</p></div>
+      <h2>Teams</h2><div id="list">Loading</div>`);
+    const load = async () => {
+      const [teams, users] = await Promise.all([api("/teams"), api("/users")]);
+      const pick = users.filter(u => u.role !== "viewer");
+      $("#list").innerHTML = teams.length ? teams.map(t => `<div class="panel" style="margin-bottom:10px"><b>${esc(t.name)}</b> ${t.active ? "" : tag("suspended", "archived")}
+          <span class="hint">${esc(t.description)}</span>
+          <p class="hint">Members: ${t.members.length ? t.members.map(m => esc(m.full_name)).join(", ") : "none"}</p>
+          ${t.active ? `<div class="bar">${pick.map(u => `<label style="display:flex;gap:4px;align-items:center;color:var(--text)"><input type="checkbox" data-team="${t.team_id}" value="${u.user_id}" ${t.members.some(m => m.user_id === u.user_id) ? "checked" : ""}>${esc(u.full_name)}</label>`).join("")}
+            <button data-save="${t.team_id}">Save members</button><button class="link" data-arch="${t.team_id}">Archive team</button></div>` : ""}</div>`).join("")
+        : `<div class="empty">No teams yet.</div>`;
+      document.querySelectorAll("[data-save]").forEach(b => b.onclick = async () => {
+        const ids = [...document.querySelectorAll(`[data-team="${b.dataset.save}"]:checked`)].map(x => +x.value);
+        try { await api(`/teams/${b.dataset.save}/members`, { method: "PUT", body: JSON.stringify({ user_ids: ids }) }); load(); } catch (e) { showErr(e); } });
+      document.querySelectorAll("[data-arch]").forEach(b => b.onclick = async () => {
+        if (!confirm("Archive this team? Its tickets and history are kept.")) return;
+        try { await api(`/teams/${b.dataset.arch}/archive`, { method: "POST" }); load(); } catch (e) { showErr(e); } });
+    };
+    $("#f").onsubmit = async e => { e.preventDefault();
+      try { await api("/teams", { method: "POST", body: JSON.stringify(formData(e.target)) }); e.target.reset(); showErr(""); load(); } catch (err) { showErr(err); } };
+    await load();
+  },
+
+  async reports(params) {
+    const days = +(params.get("days") || 30);
+    shell("reports", "Reports & your data", `<div class="bar">${[7, 30, 90, 365].map(d => `<a href="#/reports?days=${d}"><button class="${d === days ? "primary" : ""}">Last ${d} days</button></a>`).join("")}</div><div id="c" class="empty">Loading</div>
+      ${canWrite() ? `<h2>Download your data (CSV)</h2><div class="panel"><div class="bar">${["tickets","ticket_history","incidents","devices","sites","teams","audit"].map(k => `<button data-exp="${k}">${k.replace("_"," ")}</button>`).join("")}</div>
+        <p class="hint">Your data is yours. Every download is recorded in the activity log.</p></div>` : ""}`);
+    const r = await api("/reports/tickets?days=" + days);
+    const tbl = (rows, label) => rows.length ? `<table><tr><th>${label}</th><th>Opened</th><th>Resolved</th><th>Open now</th><th>Avg hours to fix</th><th>Fixed within SLA</th></tr>
+      ${rows.map(g => `<tr><td>${esc(g.name)}</td><td class="num">${g.opened}</td><td class="num">${g.resolved}</td><td class="num">${g.open_now}</td>
+        <td class="num">${g.avg_hours_to_resolve ?? "—"}</td><td class="num">${g.sla_met_pct == null ? "—" : g.sla_met_pct + "%"}</td></tr>`).join("")}</table>` : `<div class="empty">No tickets in this period.</div>`;
+    $("#c").outerHTML = `<div class="cards">
+        <div class="card"><div class="k">Tickets opened</div><div class="v">${r.opened}</div></div>
+        <div class="card"><div class="k">Resolved</div><div class="v">${r.resolved}</div></div>
+        <div class="card"><div class="k">Open now</div><div class="v">${r.open_now}</div></div>
+        <div class="card"><div class="k">Overdue now</div><div class="v" style="color:var(--bad)">${r.overdue_now}</div></div>
+        <div class="card"><div class="k">Avg hours to fix</div><div class="v">${r.avg_hours_to_resolve ?? "—"}</div></div>
+        <div class="card"><div class="k">Fixed within SLA</div><div class="v">${r.sla_met_pct == null ? "—" : r.sla_met_pct + "%"}</div></div></div>
+      <p class="hint">${r.from_monitoring} of ${r.opened} tickets were opened automatically from monitoring.</p>
+      <h2>By team</h2><div class="panel table-wrap">${tbl(r.by_team, "Team")}</div>
+      <h2>By person</h2><div class="panel table-wrap">${tbl(r.by_assignee, "Assignee")}</div>
+      <h2>By priority</h2><div class="panel table-wrap">${tbl(r.by_priority, "Priority")}</div>
+      <h2>Devices with the most tickets</h2><div class="panel table-wrap">${r.top_devices.length ? `<table><tr><th>Device</th><th>Tickets</th></tr>${r.top_devices.map(d => `<tr><td>${esc(d.device_id)}</td><td class="num">${d.tickets}</td></tr>`).join("")}</table>` : `<div class="empty">None.</div>`}</div>`;
+    document.querySelectorAll("[data-exp]").forEach(b => b.onclick = () => download(b.dataset.exp));
+  },
+
+  async activity() {
+    shell("activity", "Activity log", `<p class="hint">Every change in your account: who did it and when. This log cannot be edited or deleted.</p><div class="panel table-wrap" id="list">Loading</div>`);
+    $("#list").innerHTML = auditTable(await api("/audit"), false);
+  },
+
+  async "platform-activity"(params) {
+    if (me.role !== "super_admin") { location.hash = "#/overview"; return; }
+    shell("platform-activity", "All activity", `<div class="bar"><select id="org"><option value="">All companies</option></select></div><div class="panel table-wrap" id="list">Loading</div>`);
+    const orgs = await api("/organizations");
+    $("#org").innerHTML += orgs.map(o => `<option value="${esc(o.organization_id)}" ${o.organization_id === params.get("org") ? "selected" : ""}>${esc(o.name)}</option>`).join("");
+    $("#org").onchange = e => { location.hash = "#/platform-activity" + (e.target.value ? "?org=" + encodeURIComponent(e.target.value) : ""); };
+    $("#list").innerHTML = auditTable(await api("/admin/audit" + (params.get("org") ? "?organization_id=" + encodeURIComponent(params.get("org")) : "")), true);
+  },
 };
 const tag = (cls, text) => `<span class="pill ${esc(cls)}">${esc(text)}</span>`;
+const when = s => s ? s.slice(0, 16).replace("T", " ") + " UTC" : "";
+const slaTag = t => t.status === "resolved" || t.status === "closed"
+  ? (t.resolve_breached ? tag("high", "late") : tag("good", "on time"))
+  : (t.resolve_breached || t.response_breached ? tag("critical", "overdue") : tag("info", "within SLA"));
+function describe(h) {
+  const d = h.detail;
+  if (h.kind === "comment") return d.body;
+  if (h.kind === "created") return `Ticket opened (${d.source === "incident" ? "from monitoring, incident " + d.incident_id : "by hand"}), priority ${d.priority}.`;
+  return `${h.kind[0].toUpperCase() + h.kind.slice(1)} changed from ${d.from ?? "none"} to ${d.to ?? "none"}${d.reason ? " (" + d.reason + ")" : ""}.`;
+}
+function auditTable(rows, showOrg) {
+  return rows.length ? `<table><tr><th>When</th>${showOrg ? "<th>Company</th>" : ""}<th>Who</th><th>Action</th><th>What</th><th>Detail</th></tr>
+    ${rows.map(a => `<tr><td>${esc(when(a.created_at))}</td>${showOrg ? `<td>${esc(a.organization_id)}</td>` : ""}<td>${esc(a.actor_name)}</td>
+      <td>${esc(a.action)}</td><td>${esc(a.target)}</td><td>${esc(a.detail)}</td></tr>`).join("")}</table>` : `<div class="empty">Nothing recorded yet.</div>`;
+}
+async function download(kind) {
+  const url = new URL(`/portal/export/${kind}.csv`, location.origin);
+  if (orgScope && orgScope !== me.organization_id) url.searchParams.set("organization_id", orgScope);
+  try {
+    const res = await fetch(url, { headers: { Authorization: "Bearer " + store.token } });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+    const name = (res.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || kind + ".csv";
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(await res.blob()), download: name });
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch (e) { showErr(e); }
+}
 
 async function deviceForm(id) {
   const editing = !!id;

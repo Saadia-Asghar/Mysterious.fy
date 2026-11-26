@@ -189,7 +189,7 @@ def register(router: APIRouter, store, portal, current_user, org_scope, org_devi
         return company_rows()
 
     @router.post("/admin/companies", response_model=CompanyRow, status_code=201)
-    def create_company(body: CompanyCreate, _=Depends(staff)) -> CompanyRow:
+    def create_company(body: CompanyCreate, user=Depends(staff)) -> CompanyRow:
         from app.portal import Organization, UserIn
         if portal.get_org(body.organization_id):
             raise HTTPException(status_code=409, detail="Company ID already used")
@@ -198,6 +198,7 @@ def register(router: APIRouter, store, portal, current_user, org_scope, org_devi
         portal.add_org(Organization(organization_id=body.organization_id, name=body.name))
         portal.add_user(body.organization_id, UserIn(email=body.admin_email, full_name=body.admin_name,
                                                      password=body.admin_password, role="admin"))
+        portal.audit(body.organization_id, user, "company.created", body.name, f"admin login {body.admin_email}")
         return next(c for c in company_rows() if c.organization_id == body.organization_id)
 
     @router.patch("/admin/companies/{organization_id}", response_model=CompanyRow)
@@ -208,8 +209,12 @@ def register(router: APIRouter, store, portal, current_user, org_scope, org_devi
             raise HTTPException(status_code=409, detail="You cannot suspend your own company")
         if body.name:
             portal.rename_org(organization_id, body.name)
+        if body.name:
+            portal.audit(organization_id, user, "company.renamed", body.name)
         if body.active is not None:
             portal.set_org_active(organization_id, body.active)
+            portal.audit(organization_id, user, "company.reactivated" if body.active else "company.suspended",
+                         organization_id)
         return next(c for c in company_rows() if c.organization_id == organization_id)
 
     # ---------- support requests ----------
