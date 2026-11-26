@@ -99,6 +99,13 @@ class Store:
                     incident_id TEXT NOT NULL,
                     body_json TEXT NOT NULL
                 );
+                -- Natural recoveries: Zabbix saw every affected device healthy without any
+                -- remediation. Same body as a verification; kept apart (no execution exists).
+                CREATE TABLE IF NOT EXISTS recoveries (
+                    recovery_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    incident_id TEXT NOT NULL,
+                    body_json TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS topology_edges (
                     from_device_id TEXT NOT NULL,
                     to_device_id TEXT NOT NULL,
@@ -347,6 +354,16 @@ class Store:
                 "INSERT INTO verifications (execution_id, incident_id, body_json) VALUES (?, ?, ?)",
                 (v.execution_id, v.incident_id, v.model_dump_json()),
             )
+
+    def insert_recovery(self, v: VerificationResult) -> None:
+        with self._connect() as conn:
+            conn.execute("INSERT INTO recoveries (incident_id, body_json) VALUES (?, ?)",
+                         (v.incident_id, v.model_dump_json()))
+
+    def list_recoveries(self) -> list[VerificationResult]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT body_json FROM recoveries ORDER BY recovery_id").fetchall()
+        return [VerificationResult.model_validate_json(r[0]) for r in rows]
 
     def list_verifications(self, incident_id: str | None = None, execution_id: str | None = None) -> list[VerificationResult]:
         query, params = "SELECT body_json FROM verifications WHERE 1=1", []

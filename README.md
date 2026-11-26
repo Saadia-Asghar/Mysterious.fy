@@ -37,8 +37,10 @@ Lifecycle: DETECT → NORMALIZE → ANALYZE → CORRELATE → DIAGNOSE → DECID
 | Customer portal | done | companies, sites, devices, users, roles at `/app` |
 | Ticketing | done | teams, SLA timers, history, reports, CSV export — [docs/ticketing-and-data.md](docs/ticketing-and-data.md) |
 | Platform admin | done | company health, suspend, support requests, notices |
+| Email alerts | done | ticket created / assigned / resolved; outbox with retry — [docs/ticketing-and-data.md](docs/ticketing-and-data.md) |
+| Backups | done | automatic every 24 h while the API runs, plus `scripts/backup_db.py` |
 | Real hardware | not yet | next step: one real switch and camera |
-| Email / SMS alerts | not yet | |
+| SMS / WhatsApp | not yet | |
 
 Lab results are SIMULATED and are not evaluation results.
 

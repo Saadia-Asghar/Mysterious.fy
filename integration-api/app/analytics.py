@@ -2,13 +2,17 @@
 
 Grafana only displays these numbers; everything is computed here from what the NMS stored.
 MTTR counts only incidents whose recovery Zabbix confirmed (first healthy verification), so a
-command that merely reported success never shortens it. MTTD is not computed: it needs the
+command that merely reported success never shortens it. That includes natural recoveries (the
+device came back without remediation): the recovery check records them with an execution_id
+starting with RECOVERY_PREFIX, and each row says which kind it was in `recovered_by`. MTTD is not computed: it needs the
 true fault start time, which only a test harness knows.
 """
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 from app.schemas import Device, Event, StoredIncident, VerificationResult
+
+RECOVERY_PREFIX = "RECOVERY-"
 
 
 def _day(ts: datetime) -> datetime:
@@ -29,16 +33,18 @@ def daily(events: list[Event], incidents: list[StoredIncident]) -> list[dict]:
 
 
 def recovery_times(incidents: list[StoredIncident], verifications: list[VerificationResult]) -> list[dict]:
-    first_healthy: dict[str, datetime] = {}
+    first_healthy: dict[str, VerificationResult] = {}
     for v in sorted(verifications, key=lambda v: v.observed_at):
         if v.healthy:
-            first_healthy.setdefault(v.incident_id, v.observed_at)
+            first_healthy.setdefault(v.incident_id, v)
     rows = []
     for inc in incidents:
-        done = first_healthy.get(inc.incident_id)
-        if inc.status == "resolved" and done is not None:
+        v = first_healthy.get(inc.incident_id)
+        if inc.status == "resolved" and v is not None:
+            done = v.observed_at
             rows.append({"incident_id": inc.incident_id, "created_at": inc.created_at, "resolved_at": done,
-                         "minutes": round((done - inc.created_at).total_seconds() / 60, 2)})
+                         "minutes": round((done - inc.created_at).total_seconds() / 60, 2),
+                         "recovered_by": "itself" if v.execution_id.startswith(RECOVERY_PREFIX) else "remediation"})
     return rows
 
 

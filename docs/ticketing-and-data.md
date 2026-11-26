@@ -101,13 +101,51 @@ python scripts/backup_db.py --db data/nms.sqlite --keep 30
 python scripts/backup_db.py --restore backups/nms-20261126T020000Z.sqlite --db data/nms.sqlite
 ```
 
-- Schedule it daily (Windows Task Scheduler or cron), for example at 02:00.
+- **Automatic:** while the API runs with `NMS_AUTO_SYNC_SECONDS > 0` it backs up the database
+  itself every `NMS_BACKUP_HOURS` (default 24) into `NMS_BACKUP_DIR` (default `backups/`), keeping
+  the newest `NMS_BACKUP_KEEP` (default 30). Set `NMS_BACKUP_HOURS=0` to turn it off.
+- The script above is for a manual backup or a restore.
 - Copy `backups/` to another machine or cloud storage. A backup on the same disk does not
   survive a disk failure.
 - Test a restore once a month on a spare copy.
 - `backups/` and `data/` are git-ignored. Never commit customer data.
 
-## 6. The company benefits from its own data
+## 6. Email alerts
+
+The team hears about a ticket without having the portal open:
+
+| When | Who gets the email |
+|---|---|
+| A ticket is created with a team or person (including tickets opened by monitoring) | the assignee, else every member of the team |
+| A ticket is assigned to a person / a team | that person / that team |
+| A ticket is resolved or closed (including "monitoring confirmed recovery") | the assignee, else the team |
+
+The person who made the change is not emailed about it. Each email has the priority, device,
+incident, SLA deadlines and a link to the ticket (`NMS_PUBLIC_URL`).
+
+The background loop also opens and resolves incident tickets for every active company, so an
+outage at 3 a.m. creates the ticket and sends the email even when nobody is logged in.
+
+**Nothing is lost:** every alert is first written to the `notifications` table, then sent. If the
+mail server is down it is marked `failed` and retried on each cycle (up to 5 attempts). Without
+SMTP settings alerts are recorded as `disabled`. Company admins see the list at
+`GET /portal/notifications`.
+
+Set up (in your local `.env` only, never in Git):
+
+```
+NMS_PUBLIC_URL=http://<server address>:8000
+NMS_SMTP_HOST=smtp.gmail.com
+NMS_SMTP_PORT=587
+NMS_SMTP_USER=<sending account>
+NMS_SMTP_PASSWORD=<app password>
+NMS_SMTP_FROM=<sending account>
+```
+
+With Gmail, use an App Password (Google account → Security → 2-Step Verification → App passwords),
+not the normal password.
+
+## 7. The company benefits from its own data
 
 **Reports & data** page (`GET /portal/reports/tickets?days=7|30|90|365`):
 
@@ -125,7 +163,7 @@ Every export is itself recorded in the activity log.
 NMS staff see the same reports for any company (company selector) plus **All activity**
 across all companies, which shows who is active, what changed, and where support is needed.
 
-## 7. API summary
+## 8. API summary
 
 | Method and path | Purpose |
 |---|---|
@@ -141,19 +179,20 @@ across all companies, which shows who is active, what changed, and where support
 | `GET /portal/export/{kind}.csv` | data export |
 | `GET /portal/audit` | company activity log |
 | `GET /portal/admin/audit?organization_id=` | all activity (staff) |
+| `GET /portal/notifications` | email alerts and their status (admins) |
 
 All are scoped to the caller's company; NMS staff add `?organization_id=` to act on one company.
 
-## 8. Relation to osTicket
+## 9. Relation to osTicket
 
 osTicket stays an optional extra for customers who already use it: the M6 integration still
 opens an osTicket ticket per incident when configured, and its number shows in the incidents
 export (`external_ticket`). The portal tickets are the main place where a company's team works,
 so ticketing works even when osTicket is not installed.
 
-## 9. Known limits
+## 10. Known limits
 
 - Times are shown in UTC.
 - SLA hours are 24/7, not business hours.
-- No email or SMS alert to the assignee yet (planned with notifications, phase 6).
+- Email only; no SMS/WhatsApp yet. No reminder email when an SLA deadline passes.
 - SQLite is fine for a pilot. Move to PostgreSQL before many companies use one server.

@@ -320,7 +320,7 @@ class PortalStore:
 
 # ---------- router ----------
 def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, secret: bytes,
-                provisioner=None) -> APIRouter:
+                provisioner=None, notifier=None) -> APIRouter:
     router = APIRouter(prefix="/portal", tags=["portal"])
 
     def current_user(authorization: str | None = Header(default=None)) -> User:
@@ -608,5 +608,7 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
 
     from app import admin, ticketing  # local import: both build on this module's helpers
     admin.register(router, store, portal, current_user, org_scope, org_devices)
-    ticketing.register(router, store, portal, current_user, org_scope, org_devices)
+    # The background loop calls router.sync_tickets() so incident tickets (and their email alerts)
+    # appear even when nobody has the portal open.
+    router.sync_tickets = ticketing.register(router, store, portal, current_user, org_scope, org_devices, notifier)
     return router

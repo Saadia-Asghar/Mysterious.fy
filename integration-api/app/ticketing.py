@@ -112,7 +112,9 @@ class Ticket(BaseModel):
     history: list[TicketEvent] = []
 
 
-def register(router: APIRouter, store, portal, current_user, org_scope, org_devices) -> None:
+def register(router: APIRouter, store, portal, current_user, org_scope, org_devices, notifier=None):
+    """Add the ticketing routes. Returns sync_all(), which opens/resolves incident tickets for
+    every active company, so the background loop can run it without anyone opening the portal."""
     store.path.parent.mkdir(parents=True, exist_ok=True)
     with store._connect() as conn:
         conn.executescript(
@@ -201,6 +203,41 @@ def register(router: APIRouter, store, portal, current_user, org_scope, org_devi
                      " VALUES (?, ?, ?, ?, ?, ?, ?)",
                      (ticket_id, org_id, getattr(actor, "user_id", None), getattr(actor, "full_name", "NMS monitoring"),
                       kind, json.dumps(detail), iso(utcnow())))
+        alert(ticket_id, org_id, actor, kind, detail)
+
+    def recipients(row, actor) -> list[str]:
+        """The assignee if there is one, otherwise every active member of the ticket's team.
+        The person who made the change is not emailed about it."""
+        if row["assignee_id"]:
+            ids = [row["assignee_id"]]
+        elif row["team_id"]:
+            ids = [r["user_id"] for r in q("SELECT user_id FROM team_members WHERE team_id=?", (row["team_id"],))]
+        else:
+            return []
+        me = getattr(actor, "user_id", None)
+        marks = ",".join("?" * len(ids))
+        return [r["email"] for r in q(f"SELECT user_id, email FROM users WHERE active=1 AND user_id IN ({marks})", tuple(ids))
+                if r["user_id"] != me]
+
+    def alert(ticket_id: int, org_id: str, actor, kind: str, detail: dict) -> None:
+        if notifier is None:
+            return
+        if kind == "status" and detail.get("to") not in ("resolved", "closed"):
+            return
+        if kind not in ("created", "assignee", "team", "status"):
+            return
+        row = q("SELECT * FROM tickets WHERE ticket_id=?", (ticket_id,))[0]
+        what = {"created": "New ticket", "assignee": "Ticket assigned to you", "team": "Ticket assigned to your team",
+                "status": f"Ticket {detail.get('to')}"}[kind]
+        lines = [f"{what}: T-{ticket_id} {row['title']}",
+                 f"Priority: {row['priority']}    Status: {row['status']}",
+                 f"Device: {row['device_id'] or '-'}    Incident: {row['incident_id'] or '-'}",
+                 f"Respond by: {row['response_due']}    Resolve by: {row['resolve_due']}"]
+        if detail.get("reason"):
+            lines.append(f"Reason: {detail['reason']}")
+        lines.append(f"By: {getattr(actor, 'full_name', 'NMS monitoring')}")
+        notifier.queue(org_id, ticket_id, recipients(row, actor),
+                       f"[NMS {row['priority'].upper()}] {what}: T-{ticket_id} {row['title']}"[:200], "\n".join(lines))
 
     def to_ticket(r, names, teams, incidents, with_history=False) -> Ticket:
         now = utcnow()
@@ -577,3 +614,15 @@ def register(router: APIRouter, store, portal, current_user, org_scope, org_devi
         return csv_response(stamp, ["team_id", "name", "description", "active", "members"],
                             [[t.team_id, t.name, t.description, t.active, "; ".join(m["full_name"] for m in t.members)]
                              for t in list_teams(scope)])
+
+    def sync_all() -> None:
+        for r in q("SELECT organization_id FROM organizations WHERE active=1"):
+            sync_incidents(r["organization_id"])
+
+    @router.get("/notifications")
+    def notifications(scope=Depends(org_scope), limit: int = 200) -> list[dict]:
+        """Email alerts sent (or not) for this company's tickets, newest first. Admins only."""
+        need_team_admin(scope[0])
+        return notifier.list(scope[1], limit) if notifier else []
+
+    return sync_all

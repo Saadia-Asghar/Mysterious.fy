@@ -1,5 +1,5 @@
 import hmac
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -15,7 +15,9 @@ import asyncio
 import logging
 import secrets
 
-from app import analysis, analytics, portal, remediation, zabbix
+from app import analysis, analytics, backup, portal, remediation, zabbix
+from app.analytics import RECOVERY_PREFIX
+from app.notify import Notifier, SmtpConfig
 from app.zabbix_provision import ZabbixProvisioner
 
 log = logging.getLogger("nms")
@@ -61,6 +63,7 @@ def create_app(
     remediation_transport: httpx.BaseTransport | None = None,
     zabbix_api: ZabbixApiClient | None = None,
     clock: Callable[[], datetime] | None = None,
+    notifier: Notifier | None = None,
 ) -> FastAPI:
     if zabbix_api is None and settings.zabbix_api_url and settings.zabbix_api_token:
         zabbix_api = ZabbixApiClient(url=settings.zabbix_api_url, token=settings.zabbix_api_token)
@@ -75,6 +78,12 @@ def create_app(
     profiles = ProfileCatalog(settings.profiles_dir)
     portal_store = portal.PortalStore(store)
     provisioner = ZabbixProvisioner(zabbix_api, store) if zabbix_api is not None else None
+    if notifier is None:
+        smtp = (SmtpConfig(host=settings.smtp_host, port=settings.smtp_port, user=settings.smtp_user,
+                           password=settings.smtp_password, starttls=settings.smtp_starttls,
+                           sender=settings.smtp_sender or settings.smtp_user or "nms@example.invalid")
+                if settings.smtp_host else None)
+        notifier = Notifier(store, smtp, portal_url=f"{settings.public_url.rstrip('/')}/app")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -82,11 +91,13 @@ def create_app(
         portal_store.init()
         if provisioner:
             provisioner.init()
+        notifier.init()
         profiles.load()
         playbooks.load()
         app.state.settings = settings
         app.state.store = store
         app.state.profiles = profiles
+        app.state.auto_cycle = _auto_cycle  # one background cycle on demand (tests, admin tools)
         task = asyncio.create_task(_auto_loop()) if settings.auto_sync_seconds > 0 else None
         yield
         if task:
@@ -111,6 +122,17 @@ def create_app(
                 except HTTPException as exc:
                     log.warning("verification of %s failed: %s", execution.execution_id, exc.detail)
             recovery_sweep()
+        portal_router.sync_tickets()  # open/resolve company tickets and send their email alerts
+        notifier.flush()  # retry alerts that failed earlier
+        _scheduled_backup()
+
+    def _scheduled_backup() -> None:
+        if settings.backup_hours <= 0 or not settings.database_path.exists():
+            return
+        last = backup.latest(settings.database_path, settings.backup_dir)
+        if last is None or datetime.now(timezone.utc) - last >= timedelta(hours=settings.backup_hours):
+            path = backup.backup(settings.database_path, settings.backup_dir, settings.backup_keep)
+            log.info("database backup written: %s", path)
 
     app = FastAPI(
         title="NMS Integration Service",
@@ -120,7 +142,8 @@ def create_app(
     )
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     secret = (settings.portal_secret or secrets.token_hex(32)).encode()
-    app.include_router(portal.make_router(store, portal_store, profiles, secret, provisioner))
+    portal_router = portal.make_router(store, portal_store, profiles, secret, provisioner, notifier)
+    app.include_router(portal_router)
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     def console() -> str:
@@ -472,7 +495,13 @@ def create_app(
             except ZabbixApiError:
                 continue  # not monitored by Zabbix (e.g. demo data): never auto-resolve
             if healthy:
-                store.set_incident_status(inc.incident_id, "resolved", _now())
+                now = _now()
+                # Record the Zabbix observation, so natural recoveries count in MTTR too.
+                store.insert_recovery(VerificationResult(
+                    execution_id=f"{RECOVERY_PREFIX}{inc.incident_id}", incident_id=inc.incident_id,
+                    device_id=inc.affected_devices[0] if inc.affected_devices else "", healthy=True, observed_at=now,
+                    summary="Zabbix: no open problem on any affected device (recovered without remediation)"))
+                store.set_incident_status(inc.incident_id, "resolved", now)
                 resolved.append(inc.incident_id)
             else:
                 still_open.append(inc.incident_id)
@@ -562,7 +591,7 @@ def create_app(
     def grafana_recovery() -> list[dict]:
         """Time to recovery per resolved incident, ending at Zabbix's first healthy verification.
         The mean of `minutes` is MTTR."""
-        return analytics.recovery_times(store.list_incidents(), store.list_verifications())
+        return analytics.recovery_times(store.list_incidents(), store.list_verifications() + store.list_recoveries())
 
     @app.get("/grafana/analytics/devices")
     def grafana_devices() -> list[dict]:

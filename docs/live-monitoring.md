@@ -119,10 +119,10 @@ faster alerts.
 
 ## 7. Known limits
 
-- Natural recoveries close the incident but are not yet counted in the Grafana MTTR panel,
-  which still uses verified remediations only. The portal ticket report does include them.
+- Natural recoveries are counted in MTTR (`/grafana/analytics/recovery`, column
+  `recovered_by` = `itself` or `remediation`).
 - Checks are ICMP only. Camera-specific checks (RTSP/ONVIF stream, recording status) need the
   camera and NVR models and Sir Khurram's approval.
 - The webhook converts `{EVENT.DATE} {EVENT.TIME}` assuming the Zabbix server runs in UTC
   (true for the official image).
-- No email/SMS to the assignee yet.
+- Email alerts work when SMTP is set (see docs/ticketing-and-data.md section 6); no SMS yet.

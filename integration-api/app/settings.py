@@ -36,6 +36,16 @@ class Settings:
     verify_timeout_seconds: int = 300
     portal_secret: str | None = None  # signs portal login tokens; random per start if unset
     auto_sync_seconds: int = 0  # >0: background incident sync, verification and recovery check
+    public_url: str = "http://localhost:8000"  # address users open; used for links in emails
+    smtp_host: str | None = None  # email alerts are off unless this is set
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_sender: str | None = None
+    smtp_starttls: bool = True
+    backup_dir: Path = REPO_ROOT / "backups"
+    backup_hours: int = 24  # automatic backup interval while the background loop runs; 0 = off
+    backup_keep: int = 30
 
     @classmethod
     def from_env(cls, env_file: Path | None = REPO_ROOT / ".env") -> "Settings":
@@ -61,4 +71,14 @@ class Settings:
             verify_timeout_seconds=int(get("NMS_VERIFY_TIMEOUT_SECONDS", "300")),
             portal_secret=get("NMS_PORTAL_SECRET"),
             auto_sync_seconds=int(get("NMS_AUTO_SYNC_SECONDS", "0")),
+            public_url=get("NMS_PUBLIC_URL", "http://localhost:8000"),
+            smtp_host=get("NMS_SMTP_HOST"),
+            smtp_port=int(get("NMS_SMTP_PORT", "587")),
+            smtp_user=get("NMS_SMTP_USER"),
+            smtp_password=get("NMS_SMTP_PASSWORD"),
+            smtp_sender=get("NMS_SMTP_FROM"),
+            smtp_starttls=get("NMS_SMTP_STARTTLS", "true").lower() not in ("0", "false", "no"),
+            backup_dir=Path(get("NMS_BACKUP_DIR", str(REPO_ROOT / "backups"))),
+            backup_hours=int(get("NMS_BACKUP_HOURS", "24")),
+            backup_keep=int(get("NMS_BACKUP_KEEP", "30")),
         )
