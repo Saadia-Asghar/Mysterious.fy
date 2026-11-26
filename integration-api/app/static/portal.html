@@ -58,6 +58,20 @@
   .auth { width: 100%; max-width: 400px; }
   .auth form { display: grid; gap: 12px; }
   .empty { color: var(--muted); padding: 18px 4px; }
+  nav .navhead { margin: 18px 10px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .pill.good { background: var(--ok-bg); color: var(--ok); }
+  .pill.attention, .pill.warning, .pill.high, .pill.open { background: var(--bad-bg); color: var(--bad); }
+  .pill.critical, .pill.urgent { background: var(--err); color: #fff; }
+  .pill.no_devices, .pill.info, .pill.low, .pill.normal, .pill.resolved, .pill.suspended { background: var(--off-bg); color: var(--off); }
+  .pill.in_progress, .pill.waiting_customer { background: var(--off-bg); color: var(--accent); }
+  .notice { border-left: 4px solid var(--accent); background: var(--panel); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; border: 1px solid var(--line); border-left-width: 4px; }
+  .notice.warning { border-left-color: var(--bad); } .notice.critical { border-left-color: var(--err); }
+  .notice b { display: block; } .notice p { margin: 4px 0 0; white-space: pre-wrap; }
+  .msg { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 10px 0; background: var(--panel); }
+  .msg.staff { border-left: 4px solid var(--accent); }
+  .msg .who { font-size: 12px; color: var(--muted); } .msg p { margin: 6px 0 0; white-space: pre-wrap; }
+  textarea { font: inherit; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); min-height: 90px; width: 100%; }
+  .wide { grid-column: 1 / -1; }
   .typebars div { display: grid; grid-template-columns: 140px 1fr 40px; gap: 10px; align-items: center; margin: 6px 0; font-size: 14px; }
   .typebars i { display: block; height: 10px; background: var(--accent); border-radius: 4px; }
   @media (max-width: 760px) {
@@ -85,7 +99,8 @@ class Stale extends Error {}
 async function api(path, opts = {}) {
   const myGen = gen;
   const url = new URL("/portal" + path, location.origin);
-  if (orgScope && me && orgScope !== me.organization_id) url.searchParams.set("organization_id", orgScope);
+  const platformWide = /^\/(admin|support|notices|organizations)/.test(path);  // never scoped to one company
+  if (!platformWide && orgScope && me && orgScope !== me.organization_id) url.searchParams.set("organization_id", orgScope);
   const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json",
     ...(store.token ? { Authorization: "Bearer " + store.token } : {}) } });
   if (res.status === 401 && path !== "/login") { store.token = null; me = null; location.hash = "#/login"; throw new Error("Please log in"); }
@@ -106,10 +121,12 @@ function authPage(title, body) {
 function shell(active, title, html) {
   const links = [["overview","Overview"],["sites","Sites"],["devices","Devices"]];
   if (canWrite()) links.push(["devices/new","Add device"], ["users","Users"]);
-  if (me.role === "super_admin") links.push(["organizations","Companies"]);
+  links.push(["support", me.role === "super_admin" ? "Support inbox" : "Support"]);
+  const adminLinks = me.role === "super_admin" ? [["platform","All companies"],["notices","Notices"]] : [];
   $("#root").innerHTML = `<div class="shell"><nav>
       <div class="brand">NMS Portal</div><div class="org" id="orgname"></div>
       ${links.map(([h,l]) => `<a href="#/${h}" class="${active===h?"active":""}">${l}</a>`).join("")}
+      ${adminLinks.length ? `<div class="navhead">Platform admin</div>` + adminLinks.map(([h,l]) => `<a href="#/${h}" class="${active===h?"active":""}">${l}</a>`).join("") : ""}
       <div class="foot">${esc(me.full_name)}<br>${esc(me.role.replace("_"," "))}<br><button class="link" id="logout">Log out</button></div>
     </nav><main><h1>${title}</h1><div class="err" id="err"></div>${html}</main></div>`;
   $("#logout").onclick = () => { store.token = null; me = null; orgScope = null; location.hash = "#/login"; };
@@ -151,8 +168,10 @@ const pages = {
   },
 
   async overview() {
-    shell("overview", "Overview", `<div id="c" class="empty">Loading</div>`);
-    const o = await api("/overview");
+    shell("overview", "Overview", `<div id="notices"></div><div id="c" class="empty">Loading</div>`);
+    const [o, ns] = await Promise.all([api("/overview"), me.role === "super_admin" ? [] : api("/notices")]);
+    $("#notices").innerHTML = ns.slice(0, 3).map(n => `<div class="notice ${n.level}"><b>${esc(n.title)}</b><p>${esc(n.body)}</p>
+      <span class="hint">${esc(n.created_at.slice(0, 16).replace("T", " "))} UTC · from NMS support</span></div>`).join("");
     const max = Math.max(1, ...Object.values(o.by_type));
     $("#c").outerHTML = `<div class="cards">
         <div class="card"><div class="k">Devices</div><div class="v">${o.devices}</div></div>
@@ -243,19 +262,116 @@ const pages = {
     await load();
   },
 
-  async organizations() {
-    shell("organizations", "Companies", `<div class="panel"><form class="grid" id="f">
-        <label>Company ID<input name="organization_id" required pattern="[A-Za-z0-9][A-Za-z0-9._:-]*"></label>
-        <label>Name<input name="name" required></label><div style="align-self:end"><button class="primary">Add company</button></div></form>
-        <p class="hint">Switch between companies with the selector at the top left.</p></div>
-      <h2>All companies</h2><div class="panel table-wrap" id="list">Loading</div>`);
-    const load = async () => { const orgs = await api("/organizations");
-      $("#list").innerHTML = `<table><tr><th>ID</th><th>Name</th></tr>${orgs.map(o => `<tr><td>${esc(o.organization_id)}</td><td>${esc(o.name)}</td></tr>`).join("")}</table>`; };
+  async platform() {
+    if (me.role !== "super_admin") { location.hash = "#/overview"; return; }
+    shell("platform", "All companies", `<div id="c" class="empty">Loading</div>
+      <h2>Add a company</h2><div class="panel"><form class="grid" id="f">
+        <label>Company ID<input name="organization_id" required pattern="[A-Za-z0-9][A-Za-z0-9._:-]*" placeholder="MALL-01"></label>
+        <label>Name<input name="name" required placeholder="City Mall"></label>
+        <div style="align-self:end"><button class="primary">Add company</button></div></form>
+        <p class="hint">Then open the company and add its admin under Users, so they can sign in.</p></div>`);
+    const load = async () => {
+      const cs = await api("/admin/companies");
+      const sum = k => cs.reduce((a, c) => a + c[k], 0);
+      $("#c").outerHTML = `<div id="c"><div class="cards">
+          <div class="card"><div class="k">Companies</div><div class="v">${cs.length}</div></div>
+          <div class="card"><div class="k">Devices monitored</div><div class="v">${sum("devices")}</div></div>
+          <div class="card"><div class="k">Devices with problems</div><div class="v" style="color:var(--bad)">${sum("devices_problem")}</div></div>
+          <div class="card"><div class="k">Open incidents</div><div class="v">${sum("open_incidents")}</div></div>
+          <div class="card"><div class="k">Support waiting</div><div class="v">${sum("open_support")}</div></div></div>
+        <h2>Companies</h2><div class="panel table-wrap"><table><tr><th>Health</th><th>Company</th><th>Users</th><th>Sites</th><th>Devices</th><th>Problems</th><th>Incidents</th><th>Support</th><th>Account</th><th></th></tr>
+        ${cs.map(c => `<tr><td>${tag(c.health, c.health.replace("_", " "))}</td><td><b>${esc(c.name)}</b><br><span class="hint">${esc(c.organization_id)}</span></td>
+          <td class="num">${c.users}</td><td class="num">${c.sites}</td><td class="num">${c.devices}</td><td class="num">${c.devices_problem}</td>
+          <td class="num">${c.open_incidents}</td><td class="num">${c.open_support ? `<a href="#/support?org=${encodeURIComponent(c.organization_id)}">${c.open_support}</a>` : 0}</td>
+          <td>${c.active ? tag("good", "active") : tag("suspended", "suspended")}</td>
+          <td style="white-space:nowrap"><button class="link" data-open="${esc(c.organization_id)}">Open</button> ·
+            <button class="link" data-notify="${esc(c.organization_id)}">Notify</button>
+            ${c.organization_id !== me.organization_id ? ` · <button class="link" data-act="${esc(c.organization_id)}" data-to="${!c.active}">${c.active ? "Suspend" : "Reactivate"}</button>` : ""}</td></tr>`).join("")}
+        </table><p class="hint">Health: critical when 25% or more of a company's devices have problems; attention when any do.</p></div></div>`;
+      document.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { orgScope = b.dataset.open; location.hash = "#/overview"; });
+      document.querySelectorAll("[data-notify]").forEach(b => b.onclick = () => { location.hash = "#/notices?org=" + encodeURIComponent(b.dataset.notify); });
+      document.querySelectorAll("[data-act]").forEach(b => b.onclick = async () => {
+        const to = b.dataset.to === "true";
+        if (!to && !confirm(`Suspend ${b.dataset.act}? Its users will not be able to sign in.`)) return;
+        try { await api("/admin/companies/" + encodeURIComponent(b.dataset.act), { method: "PATCH", body: JSON.stringify({ active: to }) }); load(); } catch (e) { showErr(e); } });
+    };
     $("#f").onsubmit = async e => { e.preventDefault();
-      try { await api("/organizations", { method: "POST", body: JSON.stringify(formData(e.target)) }); route(); } catch (err) { showErr(err); } };
+      try { await api("/organizations", { method: "POST", body: JSON.stringify(formData(e.target)) }); e.target.reset(); showErr(""); load(); } catch (err) { showErr(err); } };
+    await load();
+  },
+
+  async support(params) {
+    const staff = me.role === "super_admin";
+    shell("support", staff ? "Support inbox" : "Support", `${staff ? "" : `<div class="panel"><form class="grid" id="f">
+        <label class="wide">Subject<input name="subject" required minlength="3" placeholder="Camera at gate shows offline but works"></label>
+        <label>Priority<select name="priority"><option value="normal">Normal</option><option value="low">Low</option><option value="high">High</option><option value="urgent">Urgent</option></select></label>
+        <label class="wide">Message<textarea name="message" required placeholder="What happened, which site or device, since when"></textarea></label>
+        <div><button class="primary">Send to support</button></div></form></div><h2>Your requests</h2>`}
+      <div class="bar"><select id="st"><option value="">All statuses</option><option value="open">Open</option><option value="in_progress">In progress</option>
+        <option value="waiting_customer">Waiting for customer</option><option value="resolved">Resolved</option></select></div>
+      <div class="panel table-wrap" id="list">Loading</div>`);
+    const org = params.get("org");
+    const load = async () => {
+      const qs = new URLSearchParams(); if ($("#st").value) qs.set("status", $("#st").value); if (staff && org) qs.set("organization_id", org);
+      const rs = await api("/support" + (qs.toString() ? "?" + qs : ""));
+      $("#list").innerHTML = rs.length ? `<table><tr><th>#</th><th>Status</th><th>Priority</th>${staff ? "<th>Company</th>" : ""}<th>Subject</th><th>From</th><th>Updated</th></tr>
+        ${rs.map(r => `<tr><td class="num">${r.request_id}</td><td>${tag(r.status, r.status.replace("_", " "))}</td><td>${tag(r.priority, r.priority)}</td>
+          ${staff ? `<td>${esc(r.organization_name)}</td>` : ""}<td><a href="#/support/view?id=${r.request_id}">${esc(r.subject)}</a></td>
+          <td>${esc(r.created_by)}</td><td>${esc(r.updated_at.slice(0, 16).replace("T", " "))}</td></tr>`).join("")}</table>`
+        : `<div class="empty">No support requests${org ? " for this company" : ""}.</div>`;
+    };
+    $("#st").onchange = () => load().catch(showErr);
+    if ($("#f")) $("#f").onsubmit = async e => { e.preventDefault();
+      try { const r = await api("/support", { method: "POST", body: JSON.stringify(formData(e.target)) }); location.hash = "#/support/view?id=" + r.request_id; } catch (err) { showErr(err); } };
+    await load();
+  },
+
+  async "support/view"(params) {
+    const staff = me.role === "super_admin", id = params.get("id");
+    shell("support", `Request #${esc(id)}`, `<div id="c" class="empty">Loading</div>`);
+    const r = await api("/support/" + encodeURIComponent(id));
+    const statuses = staff ? ["open", "in_progress", "waiting_customer", "resolved"] : (r.status === "resolved" ? ["open"] : ["resolved"]);
+    $("#c").outerHTML = `<div class="panel"><b>${esc(r.subject)}</b>
+        <p class="hint">${esc(r.organization_name)} · opened by ${esc(r.created_by)} · ${tag(r.priority, r.priority)} ${tag(r.status, r.status.replace("_", " "))}</p>
+        <div class="bar"><select id="ns">${statuses.map(s => `<option value="${s}" ${s === r.status ? "selected" : ""}>${staff
+          ? { open: "Open", in_progress: "In progress", waiting_customer: "Waiting for customer", resolved: "Resolved" }[s]
+          : s === "open" ? "Reopen request" : "Mark as solved"}</option>`).join("")}</select>
+          <button id="setst">Apply</button><a href="#/support">Back to list</a></div></div>
+      ${r.messages.map(m => `<div class="msg ${m.from_staff ? "staff" : ""}"><div class="who">${esc(m.author_name)}${m.from_staff ? " · NMS support" : ""} · ${esc(m.created_at.slice(0, 16).replace("T", " "))} UTC</div><p>${esc(m.body)}</p></div>`).join("")}
+      <div class="panel"><form id="rf"><label>Reply<textarea name="message" required></textarea></label><p><button class="primary">Send reply</button></p></form></div>`;
+    $("#setst").onclick = async () => { try { await api("/support/" + id, { method: "PATCH", body: JSON.stringify({ status: $("#ns").value }) }); route(); } catch (e) { showErr(e); } };
+    $("#rf").onsubmit = async e => { e.preventDefault();
+      try { await api(`/support/${id}/messages`, { method: "POST", body: JSON.stringify(formData(e.target)) }); route(); } catch (err) { showErr(err); } };
+  },
+
+  async notices(params) {
+    if (me.role !== "super_admin") { location.hash = "#/overview"; return; }
+    shell("notices", "Notices to companies", `<div class="panel"><form class="grid" id="f">
+        <label>Send to<select name="organization_id" id="to"><option value="">All companies</option></select></label>
+        <label>Level<select name="level"><option value="info">Info</option><option value="warning">Warning</option><option value="critical">Critical</option></select></label>
+        <label class="wide">Title<input name="title" required placeholder="Planned maintenance on Sunday 02:00"></label>
+        <label class="wide">Message<textarea name="body" required></textarea></label>
+        <div><button class="primary">Send notice</button></div></form>
+        <p class="hint">Notices appear at the top of the company's Overview page.</p></div>
+      <h2>Sent notices</h2><div id="list">Loading</div>`);
+    const orgs = await api("/organizations");
+    const name = Object.fromEntries(orgs.map(o => [o.organization_id, o.name]));
+    $("#to").innerHTML += orgs.map(o => `<option value="${esc(o.organization_id)}">${esc(o.name)}</option>`).join("");
+    if (params.get("org")) $("#to").value = params.get("org");
+    const load = async () => {
+      const ns = await api("/notices");
+      $("#list").innerHTML = ns.length ? ns.map(n => `<div class="notice ${n.level}"><b>${esc(n.title)}</b><p>${esc(n.body)}</p>
+        <span class="hint">To ${esc(n.organization_id ? name[n.organization_id] || n.organization_id : "all companies")} · ${esc(n.created_at.slice(0, 16).replace("T", " "))} UTC ·
+        <button class="link" data-del="${n.notice_id}">Withdraw</button></span></div>`).join("") : `<div class="empty">No notices sent.</div>`;
+      document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+        try { await api("/admin/notices/" + b.dataset.del, { method: "DELETE" }); load(); } catch (e) { showErr(e); } });
+    };
+    $("#f").onsubmit = async e => { e.preventDefault(); const d = formData(e.target); if (!d.organization_id) delete d.organization_id;
+      try { await api("/admin/notices", { method: "POST", body: JSON.stringify(d) }); e.target.reset(); showErr(""); load(); } catch (err) { showErr(err); } };
     await load();
   },
 };
+const tag = (cls, text) => `<span class="pill ${esc(cls)}">${esc(text)}</span>`;
 
 async function deviceForm(id) {
   const editing = !!id;

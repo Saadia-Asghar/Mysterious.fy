@@ -187,6 +187,19 @@ class PortalStore:
                 );
                 """
             )
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(organizations)")}
+            if "active" not in cols:  # databases created before company suspension existed
+                conn.execute("ALTER TABLE organizations ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
+
+    def org_active(self, org_id: str) -> bool:
+        rows = self._all("SELECT active FROM organizations WHERE organization_id = ?", (org_id,))
+        return bool(rows and rows[0]["active"])
+
+    def set_org_active(self, org_id: str, active: bool) -> None:
+        self._exec("UPDATE organizations SET active=? WHERE organization_id=?", (int(active), org_id))
+
+    def rename_org(self, org_id: str, name: str) -> None:
+        self._exec("UPDATE organizations SET name=? WHERE organization_id=?", (name, org_id))
 
     def _all(self, sql: str, params: tuple = ()) -> list[sqlite3.Row]:
         with self.store._connect() as conn:
@@ -201,14 +214,14 @@ class PortalStore:
         return self._all("SELECT COUNT(*) c FROM users")[0]["c"]
 
     def add_org(self, org: Organization) -> None:
-        self._exec("INSERT INTO organizations VALUES (?, ?)", (org.organization_id, org.name))
+        self._exec("INSERT INTO organizations (organization_id, name) VALUES (?, ?)", (org.organization_id, org.name))
 
     def get_org(self, org_id: str) -> Organization | None:
-        rows = self._all("SELECT * FROM organizations WHERE organization_id = ?", (org_id,))
+        rows = self._all("SELECT organization_id, name FROM organizations WHERE organization_id = ?", (org_id,))
         return Organization(**dict(rows[0])) if rows else None
 
     def list_orgs(self) -> list[Organization]:
-        return [Organization(**dict(r)) for r in self._all("SELECT * FROM organizations ORDER BY name")]
+        return [Organization(**dict(r)) for r in self._all("SELECT organization_id, name FROM organizations ORDER BY name")]
 
     # sites
     def add_site(self, org_id: str, site: SiteIn) -> Site:
@@ -278,6 +291,8 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         user = portal.get_user(uid) if uid is not None else None
         if user is None:
             raise HTTPException(status_code=401, detail="Login required")
+        if user.role != "super_admin" and not portal.org_active(user.organization_id):
+            raise HTTPException(status_code=403, detail="Your company's account is suspended. Contact support.")
         return user
 
     def org_scope(user: User = Depends(current_user),
@@ -342,6 +357,8 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         if row is None or not check_password(body.password, row["password_hash"]):
             raise HTTPException(status_code=401, detail="Wrong email or password")
         user = PortalStore.to_user(row)
+        if user.role != "super_admin" and not portal.org_active(user.organization_id):
+            raise HTTPException(status_code=403, detail="Your company's account is suspended. Contact support.")
         return LoginOut(token=make_token(user.user_id, secret), user=user)
 
     @router.get("/me", response_model=User)
@@ -496,4 +513,6 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         portal.update_device(current.model_copy(update=changes))
         return one_device(org_id, device_id)
 
+    from app import admin  # local import: admin builds on this module's helpers
+    admin.register(router, store, portal, current_user, org_scope, org_devices)
     return router
