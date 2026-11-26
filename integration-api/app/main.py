@@ -11,7 +11,9 @@ from uuid import uuid4
 
 import httpx
 
-from app import analysis, analytics, remediation, zabbix
+import secrets
+
+from app import analysis, analytics, portal, remediation, zabbix
 from collections.abc import Callable
 
 from app.osticket import OsTicketClient, TicketError
@@ -66,10 +68,12 @@ def create_app(
             reporter_email=settings.osticket_reporter_email or "nms@example.invalid",
         )
     profiles = ProfileCatalog(settings.profiles_dir)
+    portal_store = portal.PortalStore(store)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         store.init()
+        portal_store.init()
         profiles.load()
         playbooks.load()
         app.state.settings = settings
@@ -84,10 +88,16 @@ def create_app(
         lifespan=lifespan,
     )
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    secret = (settings.portal_secret or secrets.token_hex(32)).encode()
+    app.include_router(portal.make_router(store, portal_store, profiles, secret))
 
     @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     def console() -> str:
         return (STATIC_DIR / "console.html").read_text(encoding="utf-8")
+
+    @app.get("/app", response_class=HTMLResponse, include_in_schema=False)
+    def portal_page() -> str:
+        return (STATIC_DIR / "portal.html").read_text(encoding="utf-8")
 
     @app.get("/health")
     def health() -> dict[str, object]:

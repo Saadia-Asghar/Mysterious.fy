@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NMS Portal</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #18202a; --muted: #5f6b7a; --line: #e2e6eb;
+    --accent: #2563eb; --accent-text: #ffffff; --ok: #15803d; --bad: #c2410c; --off: #6b7280;
+    --ok-bg: #dcfce7; --bad-bg: #ffedd5; --off-bg: #f3f4f6; --err: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141a; --panel: #171e26; --text: #e6ebf1; --muted: #93a1b1; --line: #26303b;
+      --accent: #3b82f6; --ok: #4ade80; --bad: #fb923c; --off: #9ca3af;
+      --ok-bg: #14301f; --bad-bg: #3a2214; --off-bg: #222a33; --err: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); text-decoration: none; }
+  .shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  nav { background: var(--panel); border-right: 1px solid var(--line); padding: 18px 12px; }
+  nav .brand { font-weight: 700; font-size: 17px; padding: 0 10px 14px; }
+  nav .org { color: var(--muted); font-size: 13px; padding: 0 10px 16px; }
+  nav a { display: block; padding: 8px 10px; border-radius: 6px; color: var(--text); }
+  nav a.active, nav a:hover { background: var(--bg); }
+  nav .foot { margin-top: 24px; padding: 0 10px; font-size: 13px; color: var(--muted); }
+  main { padding: 24px 28px; max-width: 1200px; width: 100%; }
+  h1 { font-size: 22px; margin: 0 0 18px; }
+  h2 { font-size: 16px; margin: 24px 0 10px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card .k { color: var(--muted); font-size: 13px; }
+  .card .v { font-size: 28px; font-weight: 650; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.problem { background: var(--bad-bg); color: var(--bad); }
+  .pill.disabled { background: var(--off-bg); color: var(--off); }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .bar .grow { flex: 1; }
+  input, select, button { font: inherit; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button.link { border: 0; background: none; color: var(--accent); padding: 0; }
+  form.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
+  label input, label select { color: var(--text); }
+  .hint { font-size: 12px; color: var(--muted); }
+  .err { color: var(--err); margin: 10px 0; }
+  .center { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .auth { width: 100%; max-width: 400px; }
+  .auth form { display: grid; gap: 12px; }
+  .empty { color: var(--muted); padding: 18px 4px; }
+  .typebars div { display: grid; grid-template-columns: 140px 1fr 40px; gap: 10px; align-items: center; margin: 6px 0; font-size: 14px; }
+  .typebars i { display: block; height: 10px; background: var(--accent); border-radius: 4px; }
+  @media (max-width: 760px) {
+    .shell { grid-template-columns: 1fr; }
+    nav { border-right: 0; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    nav .brand, nav .org { padding: 4px 8px; }
+    nav .foot { margin: 0 0 0 auto; }
+    main { padding: 16px; }
+    .table-wrap { overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = {
+  get token() { try { return sessionStorage.getItem("nms_token"); } catch { return null; } },
+  set token(v) { try { v ? sessionStorage.setItem("nms_token", v) : sessionStorage.removeItem("nms_token"); } catch {} },
+};
+let me = null, profiles = [], orgScope = null, gen = 0;
+class Stale extends Error {}
+
+async function api(path, opts = {}) {
+  const myGen = gen;
+  const url = new URL("/portal" + path, location.origin);
+  if (orgScope && me && orgScope !== me.organization_id) url.searchParams.set("organization_id", orgScope);
+  const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json",
+    ...(store.token ? { Authorization: "Bearer " + store.token } : {}) } });
+  if (res.status === 401 && path !== "/login") { store.token = null; me = null; location.hash = "#/login"; throw new Error("Please log in"); }
+  const data = res.status === 204 ? null : await res.json().catch(() => ({}));
+  if (myGen !== gen) throw new Stale();  // user moved to another page meanwhile
+  if (res.status === 204) return null;
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail
+    : (data.detail || []).map(d => `${d.loc?.slice(-1)[0]}: ${d.msg}`).join("; ") || res.statusText);
+  return data;
+}
+const canWrite = () => me && ["super_admin", "admin"].includes(me.role);
+const formData = f => Object.fromEntries([...new FormData(f)].map(([k, v]) => [k, v.trim()]));
+
+function authPage(title, body) {
+  $("#root").innerHTML = `<div class="center"><div class="panel auth"><h1>${title}</h1>${body}<div class="err" id="err"></div></div></div>`;
+}
+
+function shell(active, title, html) {
+  const links = [["overview","Overview"],["sites","Sites"],["devices","Devices"]];
+  if (canWrite()) links.push(["devices/new","Add device"], ["users","Users"]);
+  if (me.role === "super_admin") links.push(["organizations","Companies"]);
+  $("#root").innerHTML = `<div class="shell"><nav>
+      <div class="brand">NMS Portal</div><div class="org" id="orgname"></div>
+      ${links.map(([h,l]) => `<a href="#/${h}" class="${active===h?"active":""}">${l}</a>`).join("")}
+      <div class="foot">${esc(me.full_name)}<br>${esc(me.role.replace("_"," "))}<br><button class="link" id="logout">Log out</button></div>
+    </nav><main><h1>${title}</h1><div class="err" id="err"></div>${html}</main></div>`;
+  $("#logout").onclick = () => { store.token = null; me = null; orgScope = null; location.hash = "#/login"; };
+  api("/organizations").then(orgs => {
+    const cur = orgs.find(o => o.organization_id === (orgScope || me.organization_id));
+    if (me.role === "super_admin" && orgs.length > 1) {
+      $("#orgname").innerHTML = `<select id="orgsel">${orgs.map(o => `<option value="${esc(o.organization_id)}" ${o===cur?"selected":""}>${esc(o.name)}</option>`).join("")}</select>`;
+      $("#orgsel").onchange = e => { orgScope = e.target.value; route(); };
+    } else $("#orgname").textContent = cur ? cur.name : "";
+  }).catch(() => {});
+}
+const showErr = e => { const el = $("#err"); if (el) el.textContent = e ? (e.message || e) : ""; };
+const pill = s => `<span class="pill ${s}">${s === "ok" ? "OK" : s === "problem" ? "Problem" : "Disabled"}</span>`;
+
+const pages = {
+  async setup() {
+    authPage("Set up your NMS", `<p class="hint">First run. Create the owner account and the first company.</p>
+      <form id="f"><label>Company name<input name="org_name" required placeholder="Acme Security"></label>
+      <label>Company ID<input name="org_id" required pattern="[A-Za-z0-9][A-Za-z0-9._:-]*" placeholder="ACME"></label>
+      <label>Your name<input name="full_name" required></label>
+      <label>Email<input name="email" type="email" required></label>
+      <label>Password<input name="password" type="password" minlength="8" required></label>
+      <button class="primary">Create and sign in</button></form>`);
+    $("#f").onsubmit = async e => { e.preventDefault(); const d = formData(e.target);
+      try { const r = await api("/setup", { method: "POST", body: JSON.stringify({
+          organization: { organization_id: d.org_id, name: d.org_name }, email: d.email, full_name: d.full_name, password: d.password }) });
+        store.token = r.token; me = r.user; location.hash = "#/sites"; } catch (err) { showErr(err); } };
+  },
+
+  async login() {
+    const s = await api("/setup").catch(() => ({ needed: false }));
+    if (s.needed) { location.hash = "#/setup"; return; }
+    authPage("Sign in", `<form id="f"><label>Email<input name="email" type="email" required autofocus></label>
+      <label>Password<input name="password" type="password" required></label>
+      <button class="primary">Sign in</button></form>`);
+    $("#f").onsubmit = async e => { e.preventDefault();
+      try { const r = await api("/login", { method: "POST", body: JSON.stringify(formData(e.target)) });
+        store.token = r.token; me = r.user; location.hash = "#/overview"; } catch (err) { showErr(err); } };
+  },
+
+  async overview() {
+    shell("overview", "Overview", `<div id="c" class="empty">Loading</div>`);
+    const o = await api("/overview");
+    const max = Math.max(1, ...Object.values(o.by_type));
+    $("#c").outerHTML = `<div class="cards">
+        <div class="card"><div class="k">Devices</div><div class="v">${o.devices}</div></div>
+        <div class="card"><div class="k">OK</div><div class="v" style="color:var(--ok)">${o.devices_ok}</div></div>
+        <div class="card"><div class="k">With problems</div><div class="v" style="color:var(--bad)">${o.devices_problem}</div></div>
+        <div class="card"><div class="k">Open incidents</div><div class="v">${o.open_incidents}</div></div>
+        <div class="card"><div class="k">Sites</div><div class="v">${o.sites}</div></div></div>
+      <h2>Sites</h2><div class="panel table-wrap">${o.by_site.length ? `<table><tr><th>Site</th><th>Devices</th><th>Problems</th><th></th></tr>
+        ${o.by_site.map(s => `<tr><td>${esc(s.name)}</td><td class="num">${s.devices}</td><td class="num">${s.problem ? `<span class="pill problem">${s.problem}</span>` : "0"}</td>
+        <td><a href="#/devices?site=${encodeURIComponent(s.site_id)}">View devices</a></td></tr>`).join("")}</table>`
+        : `<div class="empty">No sites yet. <a href="#/sites">Add your first site</a>.</div>`}</div>
+      <h2>Devices by type</h2><div class="panel typebars">${Object.keys(o.by_type).length
+        ? Object.entries(o.by_type).map(([t, n]) => `<div><span>${esc(t.replace(/_/g," "))}</span><i style="width:${(n / max) * 100}%"></i><span class="num">${n}</span></div>`).join("")
+        : `<div class="empty">No devices yet.</div>`}</div>`;
+  },
+
+  async sites() {
+    shell("sites", "Sites", `${canWrite() ? `<div class="panel"><form class="grid" id="f">
+        <label>Site ID<input name="site_id" required pattern="[A-Za-z0-9][A-Za-z0-9._:-]*" placeholder="LHR-01"></label>
+        <label>Name<input name="name" required placeholder="Lahore head office"></label>
+        <label>Address<input name="address"></label><label>Contact<input name="contact" placeholder="name / phone"></label>
+        <div style="align-self:end"><button class="primary">Add site</button></div></form></div>` : ""}
+      <h2>All sites</h2><div class="panel table-wrap" id="list">Loading</div>`);
+    const load = async () => {
+      const sites = await api("/sites");
+      $("#list").innerHTML = sites.length ? `<table><tr><th>ID</th><th>Name</th><th>Address</th><th>Contact</th><th></th></tr>
+        ${sites.map(s => `<tr><td>${esc(s.site_id)}</td><td>${esc(s.name)}</td><td>${esc(s.address)}</td><td>${esc(s.contact)}</td>
+        <td><a href="#/devices?site=${encodeURIComponent(s.site_id)}">Devices</a>${canWrite() ? ` · <button class="link" data-del="${esc(s.site_id)}">Delete</button>` : ""}</td></tr>`).join("")}</table>`
+        : `<div class="empty">No sites yet.</div>`;
+      document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+        if (!confirm(`Delete site ${b.dataset.del}?`)) return;
+        try { await api("/sites/" + encodeURIComponent(b.dataset.del), { method: "DELETE" }); load(); } catch (e) { showErr(e); } });
+    };
+    if ($("#f")) $("#f").onsubmit = async e => { e.preventDefault();
+      try { await api("/sites", { method: "POST", body: JSON.stringify(formData(e.target)) }); e.target.reset(); showErr(""); load(); } catch (err) { showErr(err); } };
+    await load();
+  },
+
+  async devices(params) {
+    shell("devices", "Devices", `<div class="bar">
+        <input id="q" class="grow" placeholder="Search by ID or name">
+        <select id="site"><option value="">All sites</option></select>
+        <select id="type"><option value="">All types</option></select>
+        <select id="status"><option value="">Any status</option><option value="ok">OK</option><option value="problem">Problem</option><option value="disabled">Disabled</option></select>
+        ${canWrite() ? `<a href="#/devices/new"><button class="primary">Add device</button></a>` : ""}</div>
+      <div class="panel table-wrap" id="list">Loading</div>`);
+    const [sites, all] = await Promise.all([api("/sites"), api("/devices")]);
+    $("#site").innerHTML += sites.map(s => `<option value="${esc(s.site_id)}">${esc(s.name)}</option>`).join("");
+    $("#type").innerHTML += [...new Set(all.map(d => d.device_type))].sort().map(t => `<option value="${esc(t)}">${esc(t.replace(/_/g," "))}</option>`).join("");
+    if (params.get("site")) $("#site").value = params.get("site");
+    const siteName = Object.fromEntries(sites.map(s => [s.site_id, s.name]));
+    const draw = () => {
+      const q = $("#q").value.toLowerCase(), si = $("#site").value, ty = $("#type").value, st = $("#status").value;
+      const rows = all.filter(d => (!q || d.device_id.toLowerCase().includes(q) || d.name.toLowerCase().includes(q))
+        && (!si || d.site_id === si) && (!ty || d.device_type === ty) && (!st || d.status === st));
+      $("#list").innerHTML = rows.length ? `<table><tr><th>Status</th><th>ID</th><th>Name</th><th>Type</th><th>Site</th><th>Parent</th><th>Policy</th><th>Incidents</th><th></th></tr>
+        ${rows.map(d => `<tr><td>${pill(d.status)}</td><td>${esc(d.device_id)}</td><td>${esc(d.name)}</td><td>${esc(d.device_type.replace(/_/g," "))}</td>
+          <td>${esc(siteName[d.site_id] || d.site_id)}</td><td>${esc(d.parent_device_id || "")}</td><td>${esc(d.automation_policy.replace(/_/g," "))}</td>
+          <td class="num">${d.open_incidents}</td><td>${canWrite() ? `<a href="#/devices/edit?id=${encodeURIComponent(d.device_id)}">Edit</a>` : ""}</td></tr>`).join("")}</table>
+        <p class="hint">${rows.length} of ${all.length} devices</p>` : `<div class="empty">No devices match.</div>`;
+    };
+    ["q","site","type","status"].forEach(id => $("#" + id).oninput = draw);
+    draw();
+  },
+
+  async "devices/new"() { await deviceForm(null); },
+  async "devices/edit"(params) { await deviceForm(params.get("id")); },
+
+  async users() {
+    shell("users", "Users", `<div class="panel"><form class="grid" id="f">
+        <label>Full name<input name="full_name" required></label><label>Email<input name="email" type="email" required></label>
+        <label>Temporary password<input name="password" type="password" minlength="8" required></label>
+        <label>Role<select name="role"><option value="operator">Operator</option><option value="viewer">Viewer</option><option value="admin">Admin</option>
+          ${me.role === "super_admin" ? `<option value="super_admin">Super admin</option>` : ""}</select></label>
+        <div style="align-self:end"><button class="primary">Add user</button></div></form>
+        <p class="hint">Admin: manage sites, devices and users. Operator: handle incidents. Viewer: read only.</p></div>
+      <h2>People</h2><div class="panel table-wrap" id="list">Loading</div>`);
+    const load = async () => {
+      const users = await api("/users");
+      $("#list").innerHTML = `<table><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>${users.map(u => `<tr><td>${esc(u.full_name)}</td><td>${esc(u.email)}</td>
+        <td>${esc(u.role.replace("_"," "))}</td><td>${u.user_id !== me.user_id ? `<button class="link" data-del="${u.user_id}">Remove</button>` : "you"}</td></tr>`).join("")}</table>`;
+      document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+        if (!confirm("Remove this user's access?")) return;
+        try { await api("/users/" + b.dataset.del, { method: "DELETE" }); load(); } catch (e) { showErr(e); } });
+    };
+    $("#f").onsubmit = async e => { e.preventDefault();
+      try { await api("/users", { method: "POST", body: JSON.stringify(formData(e.target)) }); e.target.reset(); showErr(""); load(); } catch (err) { showErr(err); } };
+    await load();
+  },
+
+  async organizations() {
+    shell("organizations", "Companies", `<div class="panel"><form class="grid" id="f">
+        <label>Company ID<input name="organization_id" required pattern="[A-Za-z0-9][A-Za-z0-9._:-]*"></label>
+        <label>Name<input name="name" required></label><div style="align-self:end"><button class="primary">Add company</button></div></form>
+        <p class="hint">Switch between companies with the selector at the top left.</p></div>
+      <h2>All companies</h2><div class="panel table-wrap" id="list">Loading</div>`);
+    const load = async () => { const orgs = await api("/organizations");
+      $("#list").innerHTML = `<table><tr><th>ID</th><th>Name</th></tr>${orgs.map(o => `<tr><td>${esc(o.organization_id)}</td><td>${esc(o.name)}</td></tr>`).join("")}</table>`; };
+    $("#f").onsubmit = async e => { e.preventDefault();
+      try { await api("/organizations", { method: "POST", body: JSON.stringify(formData(e.target)) }); route(); } catch (err) { showErr(err); } };
+    await load();
+  },
+};
+
+async function deviceForm(id) {
+  const editing = !!id;
+  shell(editing ? "devices" : "devices/new", editing ? `Edit ${esc(id)}` : "Add device", `<div class="panel"><form class="grid" id="f">
+      <label>1. Device type<select name="profile_id" id="profile" ${editing ? "disabled" : ""} required></select><span class="hint" id="phint"></span></label>
+      <label>Device ID<input name="device_id" required pattern="[A-Za-z0-9][A-Za-z0-9._:-]*" placeholder="CAM-LHR-001" ${editing ? "disabled" : ""}></label>
+      <label>Name<input name="name" required placeholder="Main gate camera"></label>
+      <label>2. Management address<input name="management_address" required placeholder="IP or hostname"><span class="hint">Only addresses you are authorized to monitor.</span></label>
+      <label>3. Site<select name="site_id" id="site" required></select></label>
+      <label>Zone<input name="zone_id" placeholder="Floor 1, Parking"></label>
+      <label>4. Connected to (parent)<select name="parent_device_id" id="parent" ${editing ? "disabled" : ""}><option value="">None (top level)</option></select>
+        <span class="hint">The switch or device this one depends on. Used to find root causes.</span></label>
+      <label>5. Automation policy<select name="automation_policy" id="policy">
+        <option value="">Profile default</option><option value="monitor_only">Monitor only</option><option value="recommend">Recommend fix</option>
+        <option value="require_approval">Fix after approval</option><option value="auto_remediate">Fix automatically</option></select></label>
+      <label>Responsible team<input name="responsible_team" placeholder="noc"></label>
+      <label>Enabled<select name="enabled"><option value="true">Yes</option><option value="false">No (paused)</option></select></label>
+      <div style="align-self:end;display:flex;gap:8px"><button class="primary">${editing ? "Save changes" : "Add device"}</button><a href="#/devices"><button type="button">Cancel</button></a></div>
+    </form></div>`);
+  if (!profiles.length) profiles = await fetch("/profiles").then(r => r.json());
+  const [sites, devices] = await Promise.all([api("/sites"), api("/devices")]);
+  if (!sites.length) showErr("Add a site first, then come back to add devices.");
+  $("#profile").innerHTML = profiles.map(p => `<option value="${esc(p.profile_id)}">${esc(p.device_type.replace(/_/g," "))} (${esc(p.profile_id)})</option>`).join("");
+  const hint = () => { const p = profiles.find(x => x.profile_id === $("#profile").value);
+    $("#phint").textContent = p ? `Monitors: ${p.metrics.map(m => m.metric_name).join(", ")}. Default policy: ${p.default_policy.replace(/_/g," ")}.` : ""; };
+  $("#profile").onchange = hint;
+  $("#site").innerHTML = sites.map(s => `<option value="${esc(s.site_id)}">${esc(s.name)}</option>`).join("");
+  $("#parent").innerHTML += devices.filter(d => d.device_id !== id).map(d => `<option value="${esc(d.device_id)}">${esc(d.device_id)} · ${esc(d.name)}</option>`).join("");
+  const f = $("#f");
+  if (editing) {
+    const d = await api("/devices/" + encodeURIComponent(id));
+    f.profile_id.value = d.profile_id; f.device_id.value = d.device_id; f.name.value = d.name;
+    f.management_address.value = d.management_address; f.site_id.value = d.site_id; f.zone_id.value = d.zone_id;
+    f.parent_device_id.value = d.parent_device_id || ""; f.automation_policy.value = d.automation_policy;
+    f.responsible_team.value = d.responsible_team; f.enabled.value = String(d.enabled);
+  }
+  hint();
+  f.onsubmit = async e => { e.preventDefault();
+    const d = formData(f); d.enabled = d.enabled === "true";
+    for (const k of ["automation_policy","parent_device_id","zone_id","responsible_team"]) if (!d[k]) delete d[k];
+    try {
+      if (editing) { delete d.profile_id; delete d.device_id; delete d.parent_device_id;
+        await api("/devices/" + encodeURIComponent(id), { method: "PATCH", body: JSON.stringify(d) }); }
+      else await api("/devices", { method: "POST", body: JSON.stringify(d) });
+      location.hash = "#/devices";
+    } catch (err) { showErr(err); } };
+}
+
+async function route() {
+  gen++;
+  const [path, qs] = (location.hash.slice(2) || "overview").split("?");
+  const params = new URLSearchParams(qs || "");
+  if (!["login", "setup"].includes(path) && !me) {
+    if (!store.token) { location.hash = "#/login"; return; }
+    try { me = await api("/me"); } catch { return; }
+  }
+  const page = pages[path] || pages.overview;
+  try { await page(params); } catch (e) { if (!(e instanceof Stale)) showErr(e); }
+}
+addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>

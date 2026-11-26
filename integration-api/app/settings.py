@@ -20,6 +20,7 @@ class Settings:
     zabbix_api_url: str | None = None
     zabbix_api_token: str | None = None
     verify_timeout_seconds: int = 300
+    portal_secret: str | None = None  # signs portal login tokens; random per start if unset
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,4 +38,5 @@ class Settings:
             zabbix_api_url=os.environ.get("NMS_ZABBIX_API_URL") or None,
             zabbix_api_token=os.environ.get("NMS_ZABBIX_API_TOKEN") or None,
             verify_timeout_seconds=int(os.environ.get("NMS_VERIFY_TIMEOUT_SECONDS", "300")),
+            portal_secret=os.environ.get("NMS_PORTAL_SECRET") or None,
         )

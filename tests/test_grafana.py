@@ -100,7 +100,7 @@ def test_every_panel_uses_a_provisioned_datasource():
 
 def test_every_nms_url_is_a_real_api_route(tmp_path: Path):
     settings = Settings(database_path=tmp_path / "n.sqlite", profiles_dir=REPO_ROOT / "device-profiles")
-    routes = {r.path for r in create_app(settings).routes}
+    routes = {getattr(r, "path", None) for r in create_app(settings).routes}
     dash = json.loads(DASH.read_text(encoding="utf-8"))
     urls = [t["url"] for _, t in all_targets(dash) if t["datasource"]["uid"] == "nms-api"]
     assert urls
