@@ -66,6 +66,10 @@ class SetupIn(BaseModel):
     password: str = Field(min_length=8)
 
 
+class PasswordIn(BaseModel):
+    password: str = Field(min_length=8)
+
+
 class LoginIn(BaseModel):
     email: str
     password: str
@@ -264,6 +268,9 @@ class PortalStore:
         return [self.to_user(r) for r in
                 self._all("SELECT * FROM users WHERE organization_id=? AND active=1 ORDER BY email", (org_id,))]
 
+    def set_password(self, user_id: int, password: str) -> None:
+        self._exec("UPDATE users SET password_hash=? WHERE user_id=?", (hash_password(password), user_id))
+
     def deactivate_user(self, org_id: str, user_id: int) -> None:
         self._exec("UPDATE users SET active=0 WHERE organization_id=? AND user_id=?", (org_id, user_id))
 
@@ -440,20 +447,33 @@ def make_router(store: Store, portal: PortalStore, profiles: ProfileCatalog, sec
         need_write(scope[0])
         return portal.list_users(scope[1])
 
+    # Accounts are issued by us (platform staff) only: we create each login and give the
+    # customer its email and password. Company admins can see their users but not add them.
+    def need_staff(user: User) -> None:
+        if user.role != "super_admin":
+            raise HTTPException(status_code=403, detail="Logins are created by NMS support. Open a support request.")
+
     @router.post("/users", response_model=User, status_code=201)
     def add_user(body: UserIn, scope=Depends(org_scope)) -> User:
         user, org_id = scope
-        need_write(user)
-        if body.role == "super_admin" and user.role != "super_admin":
-            raise HTTPException(status_code=403, detail="Only a super admin can create a super admin")
+        need_staff(user)
         if portal.find_user(body.email):
             raise HTTPException(status_code=409, detail="Email already used")
         return portal.add_user(org_id, body)
 
+    @router.post("/users/{user_id}/password", status_code=204)
+    def reset_password(user_id: int, body: PasswordIn, scope=Depends(org_scope)) -> None:
+        user, org_id = scope
+        need_staff(user)
+        target = portal.get_user(user_id)
+        if target is None or target.organization_id != org_id:
+            raise HTTPException(status_code=404, detail="Unknown user")
+        portal.set_password(user_id, body.password)
+
     @router.delete("/users/{user_id}", status_code=204)
     def remove_user(user_id: int, scope=Depends(org_scope)) -> None:
         user, org_id = scope
-        need_write(user)
+        need_staff(user)
         if user_id == user.user_id:
             raise HTTPException(status_code=409, detail="You cannot remove yourself")
         portal.deactivate_user(org_id, user_id)

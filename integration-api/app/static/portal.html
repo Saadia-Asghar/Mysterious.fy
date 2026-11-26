@@ -159,7 +159,7 @@ const pages = {
   async login() {
     const s = await api("/setup").catch(() => ({ needed: false }));
     if (s.needed) { location.hash = "#/setup"; return; }
-    authPage("Sign in", `<form id="f"><label>Email<input name="email" type="email" required autofocus></label>
+    authPage("Sign in", `<p class="hint">One sign-in for everyone: companies and NMS staff. Use the email and password NMS gave you.</p><form id="f"><label>Email<input name="email" type="email" required autofocus></label>
       <label>Password<input name="password" type="password" required></label>
       <button class="primary">Sign in</button></form>`);
     $("#f").onsubmit = async e => { e.preventDefault();
@@ -241,6 +241,14 @@ const pages = {
   async "devices/edit"(params) { await deviceForm(params.get("id")); },
 
   async users() {
+    const staff = me.role === "super_admin";
+    if (!staff) {
+      shell("users", "Users", `<p class="hint">Logins are created by NMS support. To add or remove a person, or reset a password, open a <a href="#/support">support request</a>.</p>
+        <div class="panel table-wrap" id="list">Loading</div>`);
+      const users = await api("/users");
+      $("#list").innerHTML = `<table><tr><th>Name</th><th>Email</th><th>Role</th></tr>${users.map(u => `<tr><td>${esc(u.full_name)}</td><td>${esc(u.email)}</td><td>${esc(u.role.replace("_"," "))}</td></tr>`).join("")}</table>`;
+      return;
+    }
     shell("users", "Users", `<div class="panel"><form class="grid" id="f">
         <label>Full name<input name="full_name" required></label><label>Email<input name="email" type="email" required></label>
         <label>Temporary password<input name="password" type="password" minlength="8" required></label>
@@ -252,7 +260,11 @@ const pages = {
     const load = async () => {
       const users = await api("/users");
       $("#list").innerHTML = `<table><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>${users.map(u => `<tr><td>${esc(u.full_name)}</td><td>${esc(u.email)}</td>
-        <td>${esc(u.role.replace("_"," "))}</td><td>${u.user_id !== me.user_id ? `<button class="link" data-del="${u.user_id}">Remove</button>` : "you"}</td></tr>`).join("")}</table>`;
+        <td>${esc(u.role.replace("_"," "))}</td><td>${u.user_id !== me.user_id ? `<button class="link" data-pw="${u.user_id}">New password</button> · <button class="link" data-del="${u.user_id}">Remove</button>` : "you"}</td></tr>`).join("")}</table>`;
+      document.querySelectorAll("[data-pw]").forEach(b => b.onclick = async () => {
+        const pw = prompt("New password for this user (at least 8 characters). Give it to them yourself.");
+        if (!pw) return;
+        try { await api(`/users/${b.dataset.pw}/password`, { method: "POST", body: JSON.stringify({ password: pw }) }); showErr(""); alert("Password changed."); } catch (e) { showErr(e); } });
       document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
         if (!confirm("Remove this user's access?")) return;
         try { await api("/users/" + b.dataset.del, { method: "DELETE" }); load(); } catch (e) { showErr(e); } });
@@ -265,11 +277,16 @@ const pages = {
   async platform() {
     if (me.role !== "super_admin") { location.hash = "#/overview"; return; }
     shell("platform", "All companies", `<div id="c" class="empty">Loading</div>
-      <h2>Add a company</h2><div class="panel"><form class="grid" id="f">
+      <h2>Add a company and its login</h2><div class="panel"><form class="grid" id="f">
         <label>Company ID<input name="organization_id" required pattern="[A-Za-z0-9][A-Za-z0-9._:-]*" placeholder="MALL-01"></label>
-        <label>Name<input name="name" required placeholder="City Mall"></label>
-        <div style="align-self:end"><button class="primary">Add company</button></div></form>
-        <p class="hint">Then open the company and add its admin under Users, so they can sign in.</p></div>`);
+        <label>Company name<input name="name" required placeholder="City Mall"></label>
+        <label>Their admin's name<input name="admin_name" required placeholder="Ali Khan"></label>
+        <label>Login email<input name="admin_email" type="email" required placeholder="it@citymall.pk"></label>
+        <label>Password<input name="admin_password" id="pw" minlength="8" required><button type="button" class="link" id="gen">Generate</button></label>
+        <div style="align-self:end"><button class="primary">Create company</button></div></form>
+        <div id="handover"></div>
+        <p class="hint">You create every login. Give the email and password to the customer; they sign in on the same page as you.</p></div>`);
+    $("#gen").onclick = () => { const a = new Uint8Array(9); crypto.getRandomValues(a); $("#pw").value = btoa(String.fromCharCode(...a)).replace(/[+/=]/g, "x"); };
     const load = async () => {
       const cs = await api("/admin/companies");
       const sum = k => cs.reduce((a, c) => a + c[k], 0);
@@ -295,8 +312,12 @@ const pages = {
         if (!to && !confirm(`Suspend ${b.dataset.act}? Its users will not be able to sign in.`)) return;
         try { await api("/admin/companies/" + encodeURIComponent(b.dataset.act), { method: "PATCH", body: JSON.stringify({ active: to }) }); load(); } catch (e) { showErr(e); } });
     };
-    $("#f").onsubmit = async e => { e.preventDefault();
-      try { await api("/organizations", { method: "POST", body: JSON.stringify(formData(e.target)) }); e.target.reset(); showErr(""); load(); } catch (err) { showErr(err); } };
+    $("#f").onsubmit = async e => { e.preventDefault(); const d = formData(e.target);
+      try { await api("/admin/companies", { method: "POST", body: JSON.stringify(d) }); e.target.reset(); showErr("");
+        $("#handover").innerHTML = `<div class="notice"><b>Send these to ${esc(d.name)}</b><p>Website: ${esc(location.origin)}/app
+Email: ${esc(d.admin_email)}
+Password: ${esc(d.admin_password)}</p><span class="hint">Shown once. Ask them to keep it private.</span></div>`;
+        load(); } catch (err) { showErr(err); } };
     await load();
   },
 

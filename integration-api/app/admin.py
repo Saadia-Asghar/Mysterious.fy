@@ -33,6 +33,15 @@ class CompanyRow(BaseModel):
     health: Literal["good", "attention", "critical", "no_devices"]
 
 
+class CompanyCreate(BaseModel):
+    """A new customer and its first login, created by us; we hand the email and password to them."""
+    organization_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+    name: str = Field(min_length=1)
+    admin_name: str = Field(min_length=1)
+    admin_email: str = Field(pattern=r"^[^@\s]+@[^@\s]+$")
+    admin_password: str = Field(min_length=8)
+
+
 class CompanyUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1)
     active: bool | None = None
@@ -178,6 +187,18 @@ def register(router: APIRouter, store, portal, current_user, org_scope, org_devi
     @router.get("/admin/companies", response_model=list[CompanyRow])
     def companies(_=Depends(staff)) -> list[CompanyRow]:
         return company_rows()
+
+    @router.post("/admin/companies", response_model=CompanyRow, status_code=201)
+    def create_company(body: CompanyCreate, _=Depends(staff)) -> CompanyRow:
+        from app.portal import Organization, UserIn
+        if portal.get_org(body.organization_id):
+            raise HTTPException(status_code=409, detail="Company ID already used")
+        if portal.find_user(body.admin_email):
+            raise HTTPException(status_code=409, detail="Email already used")
+        portal.add_org(Organization(organization_id=body.organization_id, name=body.name))
+        portal.add_user(body.organization_id, UserIn(email=body.admin_email, full_name=body.admin_name,
+                                                     password=body.admin_password, role="admin"))
+        return next(c for c in company_rows() if c.organization_id == body.organization_id)
 
     @router.patch("/admin/companies/{organization_id}", response_model=CompanyRow)
     def update_company(organization_id: str, body: CompanyUpdate, user=Depends(staff)) -> CompanyRow:

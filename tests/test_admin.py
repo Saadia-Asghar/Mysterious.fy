@@ -104,3 +104,38 @@ def test_old_database_gets_active_column(tmp_path):
     con = sqlite3.connect(db)
     assert con.execute("SELECT active FROM organizations WHERE organization_id='OLD'").fetchone() == (1,)
     con.close()
+
+
+def test_staff_create_company_with_login_and_only_staff_issue_logins(env):
+    c, S, M = env
+    r = c.post("/portal/admin/companies", headers=S, json={
+        "organization_id": "SCH", "name": "City School", "admin_name": "Sana",
+        "admin_email": "it@school.test", "admin_password": "school-pass"})
+    assert r.status_code == 201 and r.json()["users"] == 1
+    assert c.post("/portal/admin/companies", headers=S, json={
+        "organization_id": "SCH2", "name": "x", "admin_name": "y",
+        "admin_email": "it@school.test", "admin_password": "xxxxxxxx"}).status_code == 409  # email taken
+    assert c.post("/portal/admin/companies", headers=M, json={
+        "organization_id": "Z", "name": "z", "admin_name": "z",
+        "admin_email": "z@z.test", "admin_password": "zzzzzzzz"}).status_code == 403
+
+    # same sign-in endpoint for the customer as for staff
+    login = c.post("/portal/login", json={"email": "it@school.test", "password": "school-pass"})
+    assert login.status_code == 200 and login.json()["user"]["role"] == "admin"
+    sch = {"Authorization": "Bearer " + login.json()["token"]}
+
+    # company admins can list their users but cannot create, reset or remove logins
+    assert [u["email"] for u in c.get("/portal/users", headers=sch).json()] == ["it@school.test"]
+    assert c.post("/portal/users", headers=sch, json={"email": "n@school.test", "full_name": "N",
+                                                      "password": "nnnnnnnn"}).status_code == 403
+    uid = login.json()["user"]["user_id"]
+    assert c.post(f"/portal/users/{uid}/password", headers=sch, json={"password": "hijacked1"}).status_code == 403
+
+    # staff reset the password; the old one stops working
+    assert c.post(f"/portal/users/{uid}/password?organization_id=SCH", headers=S,
+                  json={"password": "new-school-pass"}).status_code == 204
+    assert c.post("/portal/login", json={"email": "it@school.test", "password": "school-pass"}).status_code == 401
+    assert c.post("/portal/login", json={"email": "it@school.test", "password": "new-school-pass"}).status_code == 200
+    # a user id from another company is not reachable through this company's scope
+    assert c.post(f"/portal/users/{uid}/password?organization_id=MALL", headers=S,
+                  json={"password": "whatever1"}).status_code == 404
