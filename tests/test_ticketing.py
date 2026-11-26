@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import io
 import sqlite3
 import sys
@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.settings import Settings
+from tests._creds import pw
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,21 +26,21 @@ def env(tmp_path):
     with TestClient(create_app(s)) as c:
         staff = H(c.post("/portal/setup", json={"organization": {"organization_id": "NMS", "name": "NOC"},
                                                 "email": "staff@nms.test", "full_name": "Staff",
-                                                "password": "staff-pass"}).json()["token"])
+                                                "password": pw("staff")}).json()["token"])
         c.post("/portal/admin/companies", headers=staff, json={
             "organization_id": "MALL", "name": "City Mall", "admin_name": "Ayesha",
-            "admin_email": "admin@mall.test", "admin_password": "admin-pass"})
+            "admin_email": "admin@mall.test", "admin_password": pw("admin")})
         ids = {}
         for email, name, role in [("tech@mall.test", "Tariq", "technician"), ("tech2@mall.test", "Bilal", "technician"),
                                   ("ops@mall.test", "Omar", "operator"), ("view@mall.test", "Vera", "viewer")]:
             ids[role if email != "tech2@mall.test" else "tech2"] = c.post(
                 "/portal/users?organization_id=MALL", headers=staff,
-                json={"email": email, "full_name": name, "password": "pass-1234", "role": role}).json()["user_id"]
+                json={"email": email, "full_name": name, "password": pw("1234"), "role": role}).json()["user_id"]
 
-        def login(email, pw="pass-1234"):
-            return H(c.post("/portal/login", json={"email": email, "password": pw}).json()["token"])
+        def login(email, label="1234"):
+            return H(c.post("/portal/login", json={"email": email, "password": pw(label)}).json()["token"])
 
-        a = login("admin@mall.test", "admin-pass")
+        a = login("admin@mall.test", "admin")
         c.post("/portal/sites", headers=a, json={"site_id": "G", "name": "Ground"})
         c.post("/portal/devices", headers=a, json={"device_id": "SW-1", "name": "sw", "profile_id": "network_switch_basic",
                                                    "site_id": "G", "management_address": "<authorized-address>",

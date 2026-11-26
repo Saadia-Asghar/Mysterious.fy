@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.settings import Settings
+from tests._creds import pw
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,12 +16,12 @@ def env(tmp_path):
                  portal_secret="test-secret")
     with TestClient(create_app(s)) as c:
         staff = c.post("/portal/setup", json={"organization": {"organization_id": "NMS", "name": "Our NOC"},
-                                              "email": "staff@nms.test", "full_name": "Staff", "password": "staff-pass"})
+                                              "email": "staff@nms.test", "full_name": "Staff", "password": pw("staff")})
         S = {"Authorization": f"Bearer {staff.json()['token']}"}
         c.post("/portal/organizations", headers=S, json={"organization_id": "MALL", "name": "City Mall"})
         c.post("/portal/users?organization_id=MALL", headers=S,
-               json={"email": "it@mall.test", "full_name": "Mall IT", "password": "mall-pass", "role": "admin"})
-        tok = c.post("/portal/login", json={"email": "it@mall.test", "password": "mall-pass"}).json()["token"]
+               json={"email": "it@mall.test", "full_name": "Mall IT", "password": pw("mall"), "role": "admin"})
+        tok = c.post("/portal/login", json={"email": "it@mall.test", "password": pw("mall")}).json()["token"]
         yield c, S, {"Authorization": f"Bearer {tok}"}
 
 
@@ -44,7 +45,7 @@ def test_suspend_blocks_company_users(env):
     c, S, M = env
     assert c.patch("/portal/admin/companies/MALL", headers=S, json={"active": False}).json()["active"] is False
     assert c.get("/portal/me", headers=M).status_code == 403
-    assert c.post("/portal/login", json={"email": "it@mall.test", "password": "mall-pass"}).status_code == 403
+    assert c.post("/portal/login", json={"email": "it@mall.test", "password": pw("mall")}).status_code == 403
     assert c.patch("/portal/admin/companies/NMS", headers=S, json={"active": False}).status_code == 409
     c.patch("/portal/admin/companies/MALL", headers=S, json={"active": True, "name": "City Mall Ltd"})
     assert c.get("/portal/me", headers=M).status_code == 200
@@ -70,8 +71,8 @@ def test_support_conversation(env):
 
     c.post("/portal/organizations", headers=S, json={"organization_id": "SCH", "name": "School"})
     c.post("/portal/users?organization_id=SCH", headers=S,
-           json={"email": "a@sch.test", "full_name": "A", "password": "sch-pass1", "role": "admin"})
-    tok = c.post("/portal/login", json={"email": "a@sch.test", "password": "sch-pass1"}).json()["token"]
+           json={"email": "a@sch.test", "full_name": "A", "password": pw("sch1"), "role": "admin"})
+    tok = c.post("/portal/login", json={"email": "a@sch.test", "password": pw("sch1")}).json()["token"]
     o = {"Authorization": f"Bearer {tok}"}
     assert c.get(f"/portal/support/{rid}", headers=o).status_code == 404
     assert c.get("/portal/support", headers=o).json() == []
@@ -110,32 +111,32 @@ def test_staff_create_company_with_login_and_only_staff_issue_logins(env):
     c, S, M = env
     r = c.post("/portal/admin/companies", headers=S, json={
         "organization_id": "SCH", "name": "City School", "admin_name": "Sana",
-        "admin_email": "it@school.test", "admin_password": "school-pass"})
+        "admin_email": "it@school.test", "admin_password": pw("school")})
     assert r.status_code == 201 and r.json()["users"] == 1
     assert c.post("/portal/admin/companies", headers=S, json={
         "organization_id": "SCH2", "name": "x", "admin_name": "y",
-        "admin_email": "it@school.test", "admin_password": "xxxxxxxx"}).status_code == 409  # email taken
+        "admin_email": "it@school.test", "admin_password": pw("xxxxxxxx")}).status_code == 409  # email taken
     assert c.post("/portal/admin/companies", headers=M, json={
         "organization_id": "Z", "name": "z", "admin_name": "z",
-        "admin_email": "z@z.test", "admin_password": "zzzzzzzz"}).status_code == 403
+        "admin_email": "z@z.test", "admin_password": pw("zzzzzzzz")}).status_code == 403
 
     # same sign-in endpoint for the customer as for staff
-    login = c.post("/portal/login", json={"email": "it@school.test", "password": "school-pass"})
+    login = c.post("/portal/login", json={"email": "it@school.test", "password": pw("school")})
     assert login.status_code == 200 and login.json()["user"]["role"] == "admin"
     sch = {"Authorization": "Bearer " + login.json()["token"]}
 
     # company admins can list their users but cannot create, reset or remove logins
     assert [u["email"] for u in c.get("/portal/users", headers=sch).json()] == ["it@school.test"]
     assert c.post("/portal/users", headers=sch, json={"email": "n@school.test", "full_name": "N",
-                                                      "password": "nnnnnnnn"}).status_code == 403
+                                                      "password": pw("nnnnnnnn")}).status_code == 403
     uid = login.json()["user"]["user_id"]
-    assert c.post(f"/portal/users/{uid}/password", headers=sch, json={"password": "hijacked1"}).status_code == 403
+    assert c.post(f"/portal/users/{uid}/password", headers=sch, json={"password": pw("hijacked1")}).status_code == 403
 
     # staff reset the password; the old one stops working
     assert c.post(f"/portal/users/{uid}/password?organization_id=SCH", headers=S,
-                  json={"password": "new-school-pass"}).status_code == 204
-    assert c.post("/portal/login", json={"email": "it@school.test", "password": "school-pass"}).status_code == 401
-    assert c.post("/portal/login", json={"email": "it@school.test", "password": "new-school-pass"}).status_code == 200
+                  json={"password": pw("new-school")}).status_code == 204
+    assert c.post("/portal/login", json={"email": "it@school.test", "password": pw("school")}).status_code == 401
+    assert c.post("/portal/login", json={"email": "it@school.test", "password": pw("new-school")}).status_code == 200
     # a user id from another company is not reachable through this company's scope
     assert c.post(f"/portal/users/{uid}/password?organization_id=MALL", headers=S,
-                  json={"password": "whatever1"}).status_code == 404
+                  json={"password": pw("whatever1")}).status_code == 404

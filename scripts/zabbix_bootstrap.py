@@ -1,8 +1,8 @@
-"""One-time Zabbix setup for the NMS. Safe to run again (it updates what exists).
+﻿"""One-time Zabbix setup for the NMS. Safe to run again (it updates what exists).
 
     python scripts/zabbix_bootstrap.py                     # Zabbix at http://localhost:8080, user Admin
     python scripts/zabbix_bootstrap.py --url http://localhost:8080 --user Admin
-    (password: --password, or env ZABBIX_ADMIN_PASSWORD, default "zabbix" for a fresh local install)
+    (password: --password, or ZABBIX_ADMIN_PASSWORD in the environment or .env; asked if unset)
 
 Creates in Zabbix:
 1. template group "Templates/NMS" and template "NMS ICMP device":
@@ -170,11 +170,17 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--url", default="http://localhost:8080", help="Zabbix web address as seen from this machine")
     ap.add_argument("--user", default="Admin")
-    ap.add_argument("--password", default=os.environ.get("ZABBIX_ADMIN_PASSWORD", "zabbix"))
+    ap.add_argument("--password", default=None,
+                    help="Zabbix admin password; default: ZABBIX_ADMIN_PASSWORD from the environment or .env, "
+                         "otherwise you are asked")
     ap.add_argument("--nms-url", default="http://host.docker.internal:8000",
                     help="NMS API address as seen from the Zabbix server container")
     ap.add_argument("--no-env", action="store_true", help="print values instead of writing .env")
     a = ap.parse_args()
+    a.password = a.password or os.environ.get("ZABBIX_ADMIN_PASSWORD") or read_env("ZABBIX_ADMIN_PASSWORD")
+    if not a.password or a.password == "change_me":
+        import getpass
+        a.password = getpass.getpass(f"Zabbix password for {a.user}: ")
 
     z = Zabbix(a.url)
     z.auth = z.call("user.login", {"username": a.user, "password": a.password})

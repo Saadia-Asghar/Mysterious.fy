@@ -1,110 +1,90 @@
 # Intelligent Generic Network Management System
 
-An academic Final Year Project for monitoring, understanding, and responding to failures in network-connected infrastructure.
+An academic Final Year Project that is also built to run as a product: a multi-company network
+management service that watches devices, groups related failures into one incident, names the
+probable cause, opens and routes tickets, and confirms recovery through monitoring.
 
-Zabbix is the monitoring foundation, Grafana is the visualization layer, and osTicket is the human incident workflow. The project contribution is the device-generic layer around them: normalized events, anomaly detection, event correlation, probable root-cause analysis, policy-aware decisions, and controlled self-healing with independent monitoring verification.
+Zabbix monitors, Grafana displays, osTicket handles human escalation. The project's own layer sits
+between them: normalized events, anomaly detection, correlation, probable root cause, policy,
+controlled remediation, a customer portal and ticketing.
 
-CCTV / IP cameras are the first vertical slice used to build and demonstrate that architecture. They are not the product boundary.
+CCTV / IP cameras are the first device type. They are not the product boundary: devices are
+described by reusable profiles in `device-profiles/`.
 
-The GitHub repository name is `Mysterious.fy`. The product name is the Intelligent Generic Network Management System.
+GitHub repository: `Mysterious.fy`.
 
-## Read this first
+## How it works
+
+```text
+Device → Profile → Zabbix (ping, loss, latency) → webhook → NMS events
+→ correlation + probable cause → incident → ticket to the device's team
+→ device answers again → Zabbix confirms → incident and ticket resolved
+```
+
+Lifecycle: DETECT → NORMALIZE → ANALYZE → CORRELATE → DIAGNOSE → DECIDE → ACT / ESCALATE → VERIFY → DISPLAY.
+
+## What is working
+
+| Area | Status | Details |
+|---|---|---|
+| Integration API | done | FastAPI + SQLite, devices, events, telemetry, topology |
+| Intelligence | done | anomaly (robust z-score), correlation v1/v2, probable root cause |
+| Incidents | done | persisted, continued (not duplicated) when alerts arrive seconds apart |
+| Remediation | done | policy engine, approved JSON playbooks, Zabbix verification |
+| Live monitoring | verified locally with lab devices | [docs/live-monitoring.md](docs/live-monitoring.md) |
+| osTicket | verified locally | [docs/osticket-live-verification.md](docs/osticket-live-verification.md) |
+| Grafana | done | dashboard `NMS Operations` with analytics |
+| Customer portal | done | companies, sites, devices, users, roles at `/app` |
+| Ticketing | done | teams, SLA timers, history, reports, CSV export — [docs/ticketing-and-data.md](docs/ticketing-and-data.md) |
+| Platform admin | done | company health, suspend, support requests, notices |
+| Real hardware | not yet | next step: one real switch and camera |
+| Email / SMS alerts | not yet | |
+
+Lab results are SIMULATED and are not evaluation results.
+
+## Run it locally
+
+```powershell
+python -m venv .venv
+.venv\Scripts\pip install -r integration-api/requirements.txt -r requirements-dev.txt
+.venv\Scripts\python -m pytest
+```
+
+1. Copy `.env.example` to `.env` and fill in your own values. `.env` stays on your machine.
+2. Start Zabbix: `docker compose -f docker/docker-compose.yml --env-file .env up -d zabbix-db zabbix-server zabbix-web`
+3. Set Zabbix up for the NMS: `python scripts/zabbix_bootstrap.py` (writes the API token into `.env`).
+4. Start the API: `python -m uvicorn app.main:app --app-dir integration-api --host 0.0.0.0 --port 8000`
+5. Open http://localhost:8000/app. The first visit creates the staff (super admin) login.
+
+Other services (Grafana, osTicket) are in `docker/docker-compose.yml`; see [docker/README.md](docker/README.md).
+Lab devices for testing without hardware: `docker compose -f docker/lab-devices.yml up -d`.
+
+## Secrets
+
+- Never commit `.env`, `data/`, backups, passwords, API keys, tokens or real device addresses.
+- Every secret is read from `.env` or the environment; `.env.example` holds only `change_me` placeholders.
+- Scripts ask for a password when it is not set; nothing has a built-in default password.
+- Tests generate throwaway logins at run time (`tests/_creds.py`), so no password is written in code.
+- If a real secret is ever pushed, change it at its source (Zabbix, osTicket, …) first; removing it from Git is not enough.
+
+## Documents
 
 | Document | Purpose |
 |---|---|
-| [docs/architecture.md](docs/architecture.md) | Working architecture for implementation |
-| [docs/fyp-specification.md](docs/fyp-specification.md) | Full FYP specification, readable on GitHub |
-| [docs/source/Intelligent_Generic_NMS_Complete_FYP_Project_Documentation.docx](docs/source/Intelligent_Generic_NMS_Complete_FYP_Project_Documentation.docx) | Original specification document |
+| [docs/architecture.md](docs/architecture.md) | Working architecture |
+| [docs/product-website-plan.md](docs/product-website-plan.md) | Product, hosting, pages and phases |
+| [docs/live-monitoring.md](docs/live-monitoring.md) | Zabbix setup and device-to-ticket flow |
+| [docs/ticketing-and-data.md](docs/ticketing-and-data.md) | Tickets, teams, audit trail, backups |
+| [docs/osticket-live-verification.md](docs/osticket-live-verification.md) | osTicket live test |
 | [docs/data-contracts.md](docs/data-contracts.md) | Shared entities and identifiers |
-| [docs/team-start.md](docs/team-start.md) | Who owns what, and what can start now |
-| [docs/milestones.md](docs/milestones.md) | Build order and current status |
+| [docs/milestones.md](docs/milestones.md) | Build order |
+| [docs/fyp-specification.md](docs/fyp-specification.md) | Full FYP specification |
 | [CLAUDE.md](CLAUDE.md) | Short context for coding agents |
-
-The Word document is the detailed FYP specification. The Markdown architecture and contracts are the working copy for the team. If they disagree, stop and resolve the disagreement before changing the design.
-
-## Architecture
-
-```text
-Supported device
-        ↓
-Device profile / connector
-        ↓
-Zabbix
-        ↓
-Monitoring metrics / events
-        ↓
-Custom integration layer
-        ↓
-Normalized events + context
-        ↓
-Intelligence layer
-        ↓
-Anomaly detection + event correlation + probable root cause
-        ↓
-Policy / decision engine
-       ↙                    ↘
-Human incident            Approved controlled
-via osTicket              self-healing
-       ↘                    ↙
-        Verification through Zabbix
-              ↓
-           Grafana
-```
-
-Operational lifecycle:
-
-```text
-DETECT → NORMALIZE → ANALYZE → CORRELATE → DIAGNOSE
-      → DECIDE → ACT / ESCALATE → VERIFY → DISPLAY
-```
-
-Conceptual inventory:
-
-```text
-Organization → Site → Zone / Building / Plant → Device Group → Device
-```
-
-A device references a reusable profile. Device-specific behavior stays in profiles, connectors, adapters, templates, and configuration.
-
-## First profile
-
-`ip_camera_basic`
-
-- Connectors: ICMP, with optional SNMP or HTTP where the device supports them
-- Metrics: availability, latency, packet loss
-- Triggers: unreachable, high latency, high packet loss
-- Dashboard: one reusable IP camera dashboard
-- Default automation: monitor only
 
 ## Git workflow
 
 ```text
-main  = latest known stable version
-dev   = active development and integration
-feature/* = isolated work, branched from dev and merged back only to dev
+main      = stable; merged from dev only after testing and approval
+dev       = active development; all work is pushed here
+feature/* = branched from dev, merged back only into dev
 ```
-
-This documentation is published on `dev`. Do not merge `dev` into `main` until a milestone is complete, its checks pass, and that merge is explicitly approved.
-
-Do not commit passwords, API keys, tokens, or real device addresses. Use placeholders and environment variables.
-
-## Run the integration service locally
-
-This is the first runnable piece. It stores devices, telemetry, and events on this machine. Zabbix, Grafana, and osTicket are not started.
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r integration-api/requirements.txt
-.venv/bin/python -m pytest
-.venv/bin/uvicorn app.main:app --app-dir integration-api --host 127.0.0.1 --port 8000
-```
-
-Open http://127.0.0.1:8000 to register a device. API details are at http://127.0.0.1:8000/docs. The database file `data/nms.sqlite` stays local.
-
-See [integration-api/README.md](integration-api/README.md).
-
-## Current status
-
-Architecture documentation and the local integration service are on `dev`. Tests cover profile loading, device registration, telemetry, and events. Docker, Zabbix, Grafana, osTicket, correlation, RCA, and self-healing are not implemented yet. See [docs/milestones.md](docs/milestones.md).
-
-Work is tested locally, then pushed to `dev`. `main` changes only after an approved merge.

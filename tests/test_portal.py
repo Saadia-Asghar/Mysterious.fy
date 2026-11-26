@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,10 +6,11 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.portal import check_password, hash_password, make_token, read_token
 from app.settings import Settings
+from tests._creds import pw
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OWNER = {"organization": {"organization_id": "ACME", "name": "Acme"}, "email": "owner@acme.test",
-         "full_name": "Owner", "password": "owner-pass-1"}
+         "full_name": "Owner", "password": pw("owner1")}
 
 
 @pytest.fixture
@@ -37,8 +38,8 @@ def login(client, email, password):
 
 
 def test_password_and_token_helpers():
-    h = hash_password("secret-123")
-    assert check_password("secret-123", h) and not check_password("wrong", h)
+    h = hash_password(pw("hash"))
+    assert check_password(pw("hash"), h) and not check_password("wrong", h)
     t = make_token(7, b"k")
     assert read_token(t, b"k") == 7
     assert read_token(t, b"other") is None
@@ -52,7 +53,7 @@ def test_setup_only_once_and_login(client):
     assert client.get("/portal/setup").json() == {"needed": False}
     assert client.post("/portal/setup", json=OWNER).status_code == 409
     assert client.get("/portal/me", headers=auth(token)).json()["role"] == "super_admin"
-    assert client.post("/portal/login", json={"email": "owner@acme.test", "password": "nope"}).status_code == 401
+    assert client.post("/portal/login", json={"email": "owner@acme.test", "password": pw("nope")}).status_code == 401
     assert client.get("/portal/me").status_code == 401
 
 
@@ -102,8 +103,8 @@ def test_roles_and_tenant_isolation(client):
                 json={"device_id": "B-CAM", "name": "b", "profile_id": "ip_camera_basic", "site_id": "B1",
                       "management_address": "<authorized-address>"})
     assert client.post("/portal/users", headers=h, json={"email": "v@acme.test", "full_name": "V",
-                                                          "password": "viewer-pass", "role": "viewer"}).status_code == 201
-    v = auth(login(client, "v@acme.test", "viewer-pass"))
+                                                          "password": pw("viewer"), "role": "viewer"}).status_code == 201
+    v = auth(login(client, "v@acme.test", pw("viewer")))
     assert client.post("/portal/sites", headers=v, json={"site_id": "X", "name": "x"}).status_code == 403
     assert client.get("/portal/devices", headers=v).json() == []
     assert client.get("/portal/devices?organization_id=BETA", headers=v).status_code == 403
@@ -111,10 +112,10 @@ def test_roles_and_tenant_isolation(client):
     assert [d["device_id"] for d in client.get("/portal/devices?organization_id=BETA", headers=h).json()] == ["B-CAM"]
 
     client.post("/portal/users", headers=h, json={"email": "a@acme.test", "full_name": "A",
-                                                   "password": "admin-pass", "role": "admin"})
-    a = auth(login(client, "a@acme.test", "admin-pass"))
+                                                   "password": pw("admin"), "role": "admin"})
+    a = auth(login(client, "a@acme.test", pw("admin")))
     assert client.post("/portal/users", headers=a, json={"email": "x@acme.test", "full_name": "X",
-                                                          "password": "xxxxxxxx", "role": "super_admin"}).status_code == 403
+                                                          "password": pw("xxxxxxxx"), "role": "super_admin"}).status_code == 403
     assert client.post("/portal/organizations", headers=a, json={"organization_id": "C", "name": "C"}).status_code == 403
 
 

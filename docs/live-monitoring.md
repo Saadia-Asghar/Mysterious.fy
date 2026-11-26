@@ -16,8 +16,9 @@ Device answers again ──► Zabbix problem clears ──► recovery check �
 docker compose -f docker/docker-compose.yml --env-file .env up -d zabbix-db zabbix-server zabbix-web
 ```
 
-Zabbix web: http://localhost:8080 (fresh install login is Zabbix's default; change the Admin
-password in Zabbix after setup and pass it to the bootstrap with `--password`).
+Zabbix web: http://localhost:8080. A fresh install uses Zabbix's documented default login; change the
+Admin password in Zabbix right away. Put it in your local `.env` as `ZABBIX_ADMIN_PASSWORD` (never in
+Git); if it is not set, the bootstrap asks for it.
 
 ## 2. Set Zabbix up for the NMS (once, safe to repeat)
 

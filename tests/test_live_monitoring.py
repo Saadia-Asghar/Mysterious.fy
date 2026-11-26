@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 from app.settings import Settings
 from app.zabbix_api import ZabbixApiClient
+from tests._creds import pw
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -61,7 +62,7 @@ def app_with(tmp_path, fake):
 
 def owner(c):
     t = c.post("/portal/setup", json={"organization": {"organization_id": "ACME", "name": "Acme"},
-                                      "email": "o@acme.test", "full_name": "O", "password": "owner-pass"}).json()["token"]
+                                      "email": "o@acme.test", "full_name": "O", "password": pw("owner")}).json()["token"]
     h = {"Authorization": f"Bearer {t}"}
     c.post("/portal/sites", headers=h, json={"site_id": "HQ", "name": "HQ"})
     return h
