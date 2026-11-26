@@ -1,0 +1,100 @@
+# CLAUDE.md
+
+Concise context for coding agents. The detailed specification is [docs/fyp-specification.md](docs/fyp-specification.md) and the original Word file in [docs/source/](docs/source/). The working design is [docs/architecture.md](docs/architecture.md).
+
+## Project
+
+Intelligent Generic Network Management System. CCTV is version-1 only.
+
+Zabbix monitors. Grafana displays. osTicket handles human incidents. A custom integration and intelligence layer normalizes events, detects anomalies, correlates failures, ranks probable causes, applies policy, and coordinates controlled remediation. Zabbix verifies recovery. A command reporting success does not prove recovery.
+
+## Preserve this flow
+
+```text
+Device → Profile / Connector → Zabbix → Metrics / Events
+→ Integration → Normalized events + context
+→ Intelligence → Anomaly + Correlation + RCA
+→ Policy → osTicket OR approved playbook
+→ Zabbix verification → Grafana
+```
+
+Lifecycle: DETECT, NORMALIZE, ANALYZE, CORRELATE, DIAGNOSE, DECIDE, ACT / ESCALATE, VERIFY, DISPLAY.
+
+## Component ownership
+
+| Component | Responsibility |
+|---|---|
+| Zabbix | Hosts, items, triggers, events, problems, post-action health |
+| Grafana | Reusable dashboards. Display only |
+| osTicket | Human ticket workflow and escalation |
+| Integration API | Normalize, enrich, map IDs, orchestrate, audit |
+| Custom database | NMS records. Separate from Zabbix and osTicket databases |
+| Intelligence | Anomaly, correlation, probable RCA |
+| Policy | monitor_only, recommend, require_approval, auto_remediate |
+| Playbooks | Explicit approved actions only |
+| Verification | Independent Zabbix health check |
+
+## Directory map
+
+The local integration service is `integration-api/`. Profiles are `device-profiles/`. Tests are `tests/`. Expected later layout:
+
+```text
+docker/  monitoring-zabbix/  visualization-grafana/  ticketing-osticket/
+integration-api/  intelligence/{anomaly,correlation,rca}/
+device-profiles/  remediation-playbooks/
+test-environment/{simulators,fault-scenarios}/  tests/  scripts/
+```
+
+## Git
+
+- `main`: stable. Do not commit unfinished work here.
+- `dev`: integration branch. Normal work happens here.
+- `feature/*`: branch from `dev`, merge back only to `dev`.
+- Never merge a feature branch directly into `main`.
+- Merge `dev` into `main` only after acceptance tests pass and a person explicitly approves.
+- Tag `mN-...-good` only after that milestone has actually been tested.
+
+## Current milestone
+
+M0 foundation complete. M1 core services: `docker/docker-compose.yml` written and statically tested (`tests/test_compose.py`) but NOT yet run, because the first dev machine has no Docker. M5 integration side done ahead of M1–M4: `POST /integrations/zabbix/events` normalizes Zabbix problems to `ZBX-<eventid>` events (`integration-api/app/zabbix.py`, `tests/test_zabbix_events.py`, media type in `monitoring-zabbix/media-types/`). M7–M9 done ahead too: `intelligence/topology.py` (depends_on edges, cycle check), `intelligence/correlation` (`time_window_and_topology_v1`: same time window AND directly related, i.e. upstream or same parent), `intelligence/rca` (`topology_time_v1`: coverage 0.7 / alerting 0.2 / earliest 0.1, normalized ranks, not probabilities; considers a silent shared upstream). API: `POST/GET /topology/edges`, `GET /intelligence/incidents` (stateless; `incident_id` = `INC-<first event_id>` until incidents are persisted with M6). Second profile `network_switch_basic` added. M6 done in code: `POST /incidents/sync` persists incidents (status never overwritten by re-analysis) and opens one osTicket ticket per eligible incident via `app/osticket.py`; failures are stored as `ticket_error` and retried; tested with a fake osTicket. `GET /incidents[/{id}]` shows ticket mapping. M10 done in code: `intelligence/anomaly` model `robust_zscore_v1` (median/MAD over previous 30 readings, |z|>=3.5, score |z|/(|z|+3.5), no look-ahead) at `GET /intelligence/anomalies`; `intelligence/anomaly/evaluate.py` gives precision/recall/F1 for M14. Synthetic test data is not an evaluation result. M11 done in code: `app/remediation.py` policy engine + JSON playbooks in `remediation-playbooks/` (only built-in action types, target from device record, profile allow-list); `POST /incidents/{id}/remediation`, `/executions/{id}/approve|reject`. Completed action sets incident `verifying`, never `resolved`. Lab target: `test-environment/simulators/test_service.py`, profile `test_service_basic`. M12 done in code: verification asks Zabbix (`app/zabbix_api.py`: host.get + problem.get, Bearer token) via `POST /executions/{id}/verify` or `POST /verification/sweep`, and a Zabbix recovery webhook counts as a healthy observation. Healthy -> `resolved`; unhealthy before `NMS_VERIFY_TIMEOUT_SECONDS` -> stays `verifying`; unhealthy after -> `escalated` + osTicket ticket with a note. Every observation stored (`GET /verifications`). M13 done in code: flat feeds `GET /grafana/summary|incidents|executions`; Grafana gets an Infinity data source `nms-api` and the generated dashboard `NMS Operations` (`scripts/build_grafana_dashboard.py` -> `visualization-grafana/dashboards/nms-operations.json`; edit the script, not the JSON). Device panels are driven by `$group`/`$host`, not per camera. Analytics row (`app/analytics.py`, `GET /grafana/analytics/daily|recovery|devices|causes|sites`): alerts vs incidents per day, MTTR from Zabbix-confirmed recovery only, top problem devices, probable cause by device type, per-site table, and Zabbix uptime % per device. MTTD not computed (needs true fault start). Demo data for the dashboard: `python scripts/load_demo_data.py` writes SIMULATED data to `data/demo.sqlite`; run the API with `NMS_DATABASE_PATH=data/demo.sqlite` and `--host 0.0.0.0` so Grafana in Docker reaches it. Never quote demo numbers as results. M14 tooling done: `scripts/run_evaluation.py --seed N --preset easy|hard` runs seeded labelled scenarios (`test-environment/fault-scenarios/generator.py`) through the real API vs a conventional baseline and records `experiments/runs/<id>/{config,results}.json` + `report.md`. Only quote numbers from recorded runs; label them simulated; MTTD/MTTR not measured. Hard preset exposes over-grouping of overlapping faults (known limitation). Correlation `upstream_anchor_quorum_v2` added beside v1 (anchor to an alerting ancestor within the window; silent-upstream sibling groups need quorum 0.5 of the parent's children). Select with `method=` on `/intelligence/incidents` and `/incidents/sync`; API default is v2 (`correlation.DEFAULT_METHOD`); v1 stays selectable. Runner reports v1, v2 and baseline side by side. Hard seed 42: v2 fixes switch outages (70%->100%) but single-camera failures during overlapping outages stay ambiguous (~40%); baseline still wins overall top-1. `Store._connect` now closes connections. Live monitoring works locally (docs/live-monitoring.md): Zabbix 7.0 runs in Docker; `scripts/zabbix_bootstrap.py` creates template "NMS ICMP device" (unreachable = 3 failed pings or 2 min no data; loss; latency), webhook media type + action, API token into .env; portal devices auto-create Zabbix hosts (`app/zabbix_provision.py`, `zabbix_links` table, Monitoring column, retry); Settings reads .env; `NMS_AUTO_SYNC_SECONDS` runs incident sync + verification + `POST /monitoring/recovery-sweep` (closes an incident only when Zabbix shows every affected device healthy); partial incidents are continued, not duplicated. Verified with lab containers `docker/lab-devices.yml` (switch outage and single camera, detect, ticket, recover). osTicket and real hardware not yet run. Phase 1 customer portal (`docs/product-website-plan.md`): `app/portal.py` adds organizations, sites, users (pbkdf2 passwords, HMAC tokens signed with `NMS_PORTAL_SECRET`), roles super_admin/admin/operator/viewer and tenant-scoped `/portal/*` device APIs; UI at `/app` (`static/portal.html`). First visit runs one-time setup. Only staff (super_admin) issue logins: `POST /portal/admin/companies` creates a company plus its admin login, `POST /portal/users` and `/portal/users/{id}/password` are staff-only; company admins can only list their users. One sign-in page for staff and customers. Ticketing (`app/ticketing.py`, docs/ticketing-and-data.md): company teams, tickets (auto one per open incident, routed by device responsible_team = team name; resolved by monitoring when the incident is verified), SLA timers, technician role (own/team tickets only), append-only ticket_events + audit_log (SQLite triggers block UPDATE/DELETE; tickets never deleted), reports `/portal/reports/tickets`, CSV exports `/portal/export/{kind}.csv`, `scripts/backup_db.py` backup/restore. Platform admin (`app/admin.py`, super_admin only): `/portal/admin/companies` health table + suspend/reactivate (suspended companies cannot log in), support requests `/portal/support` (company users open, staff reply, status open/in_progress/waiting_customer/resolved), notices `/portal/admin/notices` to one or all companies shown on their Overview. Unattended operation: the auto loop also runs `router.sync_tickets()` for every active company, retries email alerts (`app/notify.py`: `notifications` outbox, SMTP via `NMS_SMTP_*`, statuses pending/sent/failed/disabled, `GET /portal/notifications`) and backs up the DB every `NMS_BACKUP_HOURS` (`app/backup.py`, shared with `scripts/backup_db.py`). Natural recoveries are stored in `recoveries` and counted in MTTR (`recovered_by`). `app.state.auto_cycle()` runs one cycle (tests). Pipeline endpoints stay unauthenticated for Zabbix/Grafana (internal only). The user merges `dev` into `main` themselves once the application works; agents never merge or tag. `main` is still the initial commit.
+
+## Data contracts
+
+Stable entities: Device, Telemetry, Event, Incident, Anomaly Result, Correlation Result, RCA Result, Ticket Mapping, Remediation Execution, Verification Result.
+
+Trace: `device_id` → `event_id` → `incident_id` → `ticket_id` / `execution_id` → verification result.
+
+Details and examples: [docs/data-contracts.md](docs/data-contracts.md). Do not change a shared schema after another component depends on it unless the change is reviewed and recorded.
+
+## Commands
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r integration-api/requirements.txt -r requirements-dev.txt
+.venv/bin/python -m pytest
+.venv/bin/uvicorn app.main:app --app-dir integration-api --host 127.0.0.1 --port 8000
+docker compose -f docker/docker-compose.yml --env-file .env up -d   # M1 services (see docker/README.md)
+```
+
+Run pytest before pushing to `dev`. Do not commit `.venv/` or `data/`.
+
+## Constraints an agent must not silently change
+
+- The generic pipeline and the CCTV-as-V1 boundary
+- Which product owns monitoring, visualization, and ticketing
+- Policy-controlled remediation and the ban on invented commands
+- Monitoring-based verification after every automated action
+- Shared identifiers and schemas
+- Secrets: never commit credentials, tokens, or real management addresses
+- Research integrity: never fabricate accuracy, MTTR, anomaly, RCA, or remediation results
+- Do not start the next milestone without explicit approval
+
+## When stuck
+
+1. Name the current milestone and the last known-good commit.
+2. Reproduce the smallest failure.
+3. Check producer, then contract, then consumer.
+4. Trace `device_id`, `event_id`, `incident_id`, and `execution_id`.
+5. Read logs before editing another component.
+6. Apply the smallest compatible fix and add a regression test.
+7. Re-run the milestone acceptance check.

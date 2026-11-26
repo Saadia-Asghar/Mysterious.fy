@@ -1,0 +1,31 @@
+# Lab "devices" for testing live monitoring without real hardware.
+# Each is a tiny container Zabbix can ping by name on the stack's network.
+#   docker compose -f docker/lab-devices.yml up -d          # start (all "online")
+#   docker stop lab-cam-1                                    # simulate one camera failing
+#   docker stop lab-sw-1 lab-cam-1 lab-cam-2                 # simulate a switch outage (all behind it drop)
+#   docker start lab-sw-1 lab-cam-1 lab-cam-2                # recover
+# Register them in the portal with management address lab-sw-1, lab-cam-1, lab-cam-2.
+# These are SIMULATED devices: never present their numbers as real-world results.
+name: nms-lab
+
+services:
+  lab-sw-1:
+    image: alpine:3.20
+    container_name: lab-sw-1
+    command: ["sleep", "infinity"]
+    networks: [nms]
+  lab-cam-1:
+    image: alpine:3.20
+    container_name: lab-cam-1
+    command: ["sleep", "infinity"]
+    networks: [nms]
+  lab-cam-2:
+    image: alpine:3.20
+    container_name: lab-cam-2
+    command: ["sleep", "infinity"]
+    networks: [nms]
+
+networks:
+  nms:
+    name: nms-fyp_default
+    external: true

@@ -1,0 +1,25 @@
+{
+  "run_id": "20261109T083550Z-hard-seed42",
+  "seed": 42,
+  "created_at": "2026-11-09T08:35:50.166309+00:00",
+  "git_commit": "47031eb93e0a851b7cbc6a973aa6c0039b07a380",
+  "environment": "simulated",
+  "preset": "hard",
+  "preset_params": {
+    "spacing_seconds": 60,
+    "max_cascade_delay": 180,
+    "missing_alert_probability": 0.1,
+    "spike_range": [
+      1.5,
+      3.0
+    ],
+    "jitter": 0.25
+  },
+  "methods": {
+    "correlation": "time_window_and_topology_v1",
+    "rca": "topology_time_v1",
+    "anomaly": "robust_zscore_v1"
+  },
+  "trials": 200,
+  "remediation_trials": 60
+}
