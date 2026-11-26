@@ -24,4 +24,10 @@ The ticket subject names the incident, severity, number of affected devices and 
 3. Put the key in `.env` as `NMS_OSTICKET_API_KEY`, set `NMS_OSTICKET_URL`, restart the API.
 4. Trigger an event, call `POST /incidents/sync`, and confirm the ticket appears in the staff panel.
 
-Status: implemented and tested against a fake osTicket (`tests/test_osticket.py`). Not yet verified against a live osTicket (needs M1 running).
+Status: Implemented and tested against a simulated
+osTicket API. Live integration was successfully verified
+on 26 November 2026 using a simulated network outage
+and a Docker-hosted osTicket instance.
+
+See docs/osticket-live-verification.md for test results,
+configuration details and remaining limitations.
