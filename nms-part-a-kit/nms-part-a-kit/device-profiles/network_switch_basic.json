@@ -1,0 +1,16 @@
+{
+  "profile_id": "network_switch_basic",
+  "device_type": "network_switch",
+  "connectors": ["icmp"],
+  "optional_connectors": ["snmp"],
+  "metrics": [
+    {"metric_name": "availability", "unit": "bool"},
+    {"metric_name": "latency_ms", "unit": "ms"},
+    {"metric_name": "packet_loss_percent", "unit": "percent"}
+  ],
+  "triggers": ["device_unreachable", "high_latency", "high_packet_loss"],
+  "dashboard": "network_switch_basic",
+  "capabilities": ["health_check"],
+  "allowed_playbooks": [],
+  "default_policy": "monitor_only"
+}

@@ -1,0 +1,29 @@
+{
+  "profile_id": "test_service_basic",
+  "description": "HTTP health check for the lab test service (test-environment/simulators/test_service.py): any status other than 200, or no answer for 3 minutes, is a problem.",
+  "macros": [
+    {"macro": "{$NMS.HEALTH_PATH}", "value": "/health", "description": "Path of the health endpoint, appended to the host's {$NMS.BASE_URL}."}
+  ],
+  "address_macro": "{$NMS.BASE_URL}",
+  "items": [
+    {
+      "name": "Health endpoint HTTP status",
+      "key": "nms.health.status",
+      "type": "http_agent",
+      "value_type": "unsigned",
+      "delay": "30s",
+      "url": "{$NMS.BASE_URL}{$NMS.HEALTH_PATH}",
+      "request_method": 0,
+      "retrieve_mode": 1,
+      "status_codes": "100-599",
+      "timeout": "5s",
+      "preprocessing": [
+        {"type": 5, "params": "^HTTP/[0-9.]+ ([0-9]{3})\n\\1", "error_handler": 0, "error_handler_params": ""}
+      ],
+      "description": "HTTP status code of the health endpoint (headers only). All codes are accepted so a 503 is stored as a value."
+    }
+  ],
+  "triggers": [
+    {"nms_event_type": "service_down", "name": "{HOST.NAME}: health check failing", "expression": "last(/{TEMPLATE}/nms.health.status)<>200 or nodata(/{TEMPLATE}/nms.health.status,3m)=1", "severity": "high"}
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "devices": [
+    {
+      "device_id": "SWITCH-A",
+      "name": "Lab access switch",
+      "profile_id": "network_switch_basic",
+      "organization_id": "LAB",
+      "site_id": "LAB-SITE",
+      "zone_id": "BENCH",
+      "management_address": "<authorized-address>",
+      "responsible_team": "network_team"
+    },
+    {
+      "device_id": "CAM-001",
+      "name": "Lab camera 1",
+      "profile_id": "ip_camera_basic",
+      "organization_id": "LAB",
+      "site_id": "LAB-SITE",
+      "zone_id": "BENCH",
+      "management_address": "<authorized-address>",
+      "responsible_team": "network_team",
+      "automation_policy": "monitor_only"
+    }
+  ],
+  "topology": [
+    {"from": "CAM-001", "to": "SWITCH-A"}
+  ]
+}

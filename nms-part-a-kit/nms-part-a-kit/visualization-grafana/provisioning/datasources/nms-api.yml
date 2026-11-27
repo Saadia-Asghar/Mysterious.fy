@@ -1,0 +1,11 @@
+apiVersion: 1
+datasources:
+  # Integration API flat feeds (/grafana/*, /intelligence/anomalies). Display only.
+  - name: NMS API
+    uid: nms-api
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    url: $NMS_API_URL
+    jsonData:
+      allowedHosts:
+        - $NMS_API_URL
