@@ -1,0 +1,18 @@
+{
+  "profile_id": "network_switch_basic",
+  "description": "ICMP availability, latency and packet loss for network switches. Thresholds are provisional until agreed.",
+  "macros": [
+    {"macro": "{$NMS.LATENCY.MAX_MS}", "value": "100", "description": "Provisional. Average ICMP latency (ms) over 5 minutes above which high_latency fires."},
+    {"macro": "{$NMS.PACKET_LOSS.MAX_PERCENT}", "value": "5", "description": "Provisional. Average ICMP packet loss (%) over 5 minutes above which high_packet_loss fires."}
+  ],
+  "items": [
+    {"name": "ICMP ping", "key": "icmpping", "type": "simple_check", "value_type": "unsigned", "delay": "60s", "nms_metric": "availability", "description": "1 = the device answered, 0 = no answer."},
+    {"name": "ICMP response time", "key": "icmppingsec", "type": "simple_check", "value_type": "float", "delay": "60s", "units": "s", "nms_metric": "latency_ms", "description": "Zabbix stores seconds. The NMS metric latency_ms is this value times 1000."},
+    {"name": "ICMP loss", "key": "icmppingloss", "type": "simple_check", "value_type": "float", "delay": "60s", "units": "%", "nms_metric": "packet_loss_percent", "description": "Percentage of lost ICMP packets."}
+  ],
+  "triggers": [
+    {"nms_event_type": "device_unreachable", "name": "{HOST.NAME} is unreachable (no ICMP reply 3 times in a row)", "expression": "max(/{TEMPLATE}/icmpping,#3)=0", "severity": "high"},
+    {"nms_event_type": "high_latency", "name": "{HOST.NAME}: high ICMP latency", "expression": "avg(/{TEMPLATE}/icmppingsec,5m)*1000>{$NMS.LATENCY.MAX_MS}", "severity": "warning", "depends_on": "device_unreachable"},
+    {"nms_event_type": "high_packet_loss", "name": "{HOST.NAME}: high ICMP packet loss", "expression": "avg(/{TEMPLATE}/icmppingloss,5m)>{$NMS.PACKET_LOSS.MAX_PERCENT}", "severity": "average", "depends_on": "device_unreachable"}
+  ]
+}
