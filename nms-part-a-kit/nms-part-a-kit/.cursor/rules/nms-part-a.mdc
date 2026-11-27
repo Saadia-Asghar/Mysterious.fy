@@ -1,0 +1,38 @@
+---
+description: Rules for working on NMS Part A (Zabbix, generic monitoring, controlled self-healing)
+alwaysApply: true
+---
+
+# NMS Part A: rules for the AI agent
+
+Read first: `docs/part-a/PRD.md`, `docs/part-a/TRD.md`, `docs/part-a/STEP_BY_STEP_GUIDE.md`, `CLAUDE.md`, `docs/data-contracts.md`.
+
+This folder is a slice of the team repository. Files mentioned in `CLAUDE.md` that are not here (experiments, evaluation scripts, the Grafana dashboard builder) are outside Part A: do not recreate them.
+
+## Scope
+
+You may change: `monitoring-zabbix/`, the automation code in `integration-api/app/main.py`, `remediation-playbooks/`, `device-profiles/` (only with a matching template), `test-environment/`, `docker/`, tests and Part A docs.
+Do not change without asking the person: osTicket code (`app/osticket.py`), correlation/RCA (`intelligence/`), Grafana files, shared names in `docs/data-contracts.md`.
+
+## Hard rules
+
+1. Generic by construction: no device-type or device-name logic in Python. New device = profile JSON + template JSON.
+2. Safety: playbooks are named JSON files; never accept or run free-form commands or URLs. Policy (`remediation.py`) alone decides whether an action runs. Cameras stay `monitor_only`. Never automate medical or safety-critical control.
+3. Zabbix host name == NMS `device_id`. Trigger tag `nms_event_type` must be in the profile's `triggers`.
+4. Target Zabbix **7.0 LTS** (`docker-compose.yml` pins it). Do not use macros or API fields that appeared after 7.0 (`{EVENT.TIMESTAMP}` is 7.2+). When unsure, check the Zabbix 7.0 manual.
+5. No secrets, real addresses or passwords in git. `.env` and `monitoring-zabbix/inventory.json` stay ignored.
+6. Never claim something works unless it was run. Offline tests use a fake Zabbix; say "not verified on live Zabbix" until it is.
+7. No dead code: no unused imports, variables, files, commented-out blocks, or README text describing things that do not exist.
+
+## Before you say "done"
+
+```
+python -m pytest -q
+ruff check --select F .
+```
+Both must be clean. Add a test with every behaviour change. Keep README/PRD/TRD in step with code.
+
+## Commands
+
+Run API: `python -m uvicorn app.main:app --app-dir integration-api --env-file .env --host 0.0.0.0 --port 8000`
+Provision: `python monitoring-zabbix/provision.py setup` then `onboard`.

@@ -1,0 +1,1155 @@
+{
+  "uid": "nms-operations",
+  "title": "NMS Operations",
+  "description": "Generic intelligent NMS: monitoring, incidents, RCA, tickets, remediation, verification.",
+  "tags": [
+    "nms",
+    "fyp"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "group",
+        "label": "Device group",
+        "type": "query",
+        "datasource": {
+          "type": "alexanderzobnin-zabbix-datasource",
+          "uid": "zabbix"
+        },
+        "query": {
+          "queryType": "group",
+          "group": "/.*/",
+          "host": "",
+          "application": "",
+          "itemTag": "",
+          "item": ""
+        },
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": {}
+      },
+      {
+        "name": "host",
+        "label": "Device",
+        "type": "query",
+        "datasource": {
+          "type": "alexanderzobnin-zabbix-datasource",
+          "uid": "zabbix"
+        },
+        "query": {
+          "queryType": "host",
+          "group": "$group",
+          "host": "/.*/",
+          "application": "",
+          "itemTag": "",
+          "item": ""
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": "/.*/",
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 1,
+      "title": "Operations overview (NMS intelligence)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 2,
+      "title": "Open incidents",
+      "description": "Correlated incidents not yet acted on",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/summary",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "open",
+              "text": "Open incidents",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 3,
+      "title": "Awaiting approval",
+      "description": "Remediation waiting for a person (require_approval)",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/summary",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "action_pending",
+              "text": "Awaiting approval",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 4,
+      "title": "Verifying",
+      "description": "Action done; waiting for Zabbix to confirm health",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/summary",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "verifying",
+              "text": "Verifying",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "yellow"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 5,
+      "title": "Escalated",
+      "description": "Needs humans: action failed, rejected or recovery not verified",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/summary",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "escalated",
+              "text": "Escalated",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 6,
+      "title": "Resolved",
+      "description": "Recovery confirmed by Zabbix",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/summary",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "resolved",
+              "text": "Resolved",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "type": "stat",
+      "id": 7,
+      "title": "Alert reduction",
+      "description": "1 - incidents / raw events",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/summary",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "alert_reduction_percent",
+              "text": "Alert reduction",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "type": "table",
+      "id": 8,
+      "title": "Incidents: correlation, probable root cause, ticket, remediation, verification",
+      "description": "One row per correlated incident. Rank scores are heuristic ranks (topology_time_v1), not probabilities.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/incidents",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "incident_id",
+              "text": "Incident",
+              "type": "string"
+            },
+            {
+              "selector": "created_at",
+              "text": "Started",
+              "type": "timestamp"
+            },
+            {
+              "selector": "severity",
+              "text": "Severity",
+              "type": "string"
+            },
+            {
+              "selector": "status",
+              "text": "Status",
+              "type": "string"
+            },
+            {
+              "selector": "affected_devices",
+              "text": "Affected devices",
+              "type": "string"
+            },
+            {
+              "selector": "event_count",
+              "text": "Events",
+              "type": "number"
+            },
+            {
+              "selector": "top_cause",
+              "text": "Probable cause",
+              "type": "string"
+            },
+            {
+              "selector": "top_cause_score",
+              "text": "Cause rank score",
+              "type": "number"
+            },
+            {
+              "selector": "top_cause_reason",
+              "text": "Why",
+              "type": "string"
+            },
+            {
+              "selector": "ticket_id",
+              "text": "osTicket #",
+              "type": "string"
+            },
+            {
+              "selector": "remediation_status",
+              "text": "Remediation",
+              "type": "string"
+            },
+            {
+              "selector": "verified_healthy",
+              "text": "Zabbix healthy",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "open": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "action_pending": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "verifying": {
+                        "color": "yellow",
+                        "index": 2
+                      },
+                      "resolved": {
+                        "color": "green",
+                        "index": 3
+                      },
+                      "escalated": {
+                        "color": "purple",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Remediation"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "pending": {
+                        "color": "orange",
+                        "index": 0
+                      },
+                      "running": {
+                        "color": "yellow",
+                        "index": 1
+                      },
+                      "completed": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 3
+                      },
+                      "rejected_by_policy": {
+                        "color": "text",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zabbix healthy"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "true": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "false": {
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "table",
+      "id": 9,
+      "title": "Controlled self-healing and verification",
+      "description": "An action finishing is not recovery. Only the Zabbix verification column decides health.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 16,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/grafana/executions",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "execution_id",
+              "text": "Execution",
+              "type": "string"
+            },
+            {
+              "selector": "incident_id",
+              "text": "Incident",
+              "type": "string"
+            },
+            {
+              "selector": "device_id",
+              "text": "Device",
+              "type": "string"
+            },
+            {
+              "selector": "playbook_id",
+              "text": "Playbook",
+              "type": "string"
+            },
+            {
+              "selector": "policy",
+              "text": "Policy",
+              "type": "string"
+            },
+            {
+              "selector": "status",
+              "text": "Action",
+              "type": "string"
+            },
+            {
+              "selector": "reason",
+              "text": "Policy decision",
+              "type": "string"
+            },
+            {
+              "selector": "approved_by",
+              "text": "Approved by",
+              "type": "string"
+            },
+            {
+              "selector": "finished_at",
+              "text": "Finished",
+              "type": "timestamp"
+            },
+            {
+              "selector": "healthy",
+              "text": "Zabbix healthy",
+              "type": "string"
+            },
+            {
+              "selector": "last_verification",
+              "text": "Last verification",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Action"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "pending": {
+                        "color": "orange",
+                        "index": 0
+                      },
+                      "running": {
+                        "color": "yellow",
+                        "index": 1
+                      },
+                      "completed": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 3
+                      },
+                      "rejected_by_policy": {
+                        "color": "text",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Zabbix healthy"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "true": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "false": {
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "table",
+      "id": 10,
+      "title": "Telemetry anomalies (robust_zscore_v1)",
+      "description": "Readings with |robust z| >= 3.5 against the previous 30 readings. Score 0.5 = threshold.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "nms-api"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "nms-api"
+          },
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "/intelligence/anomalies?only_anomalies=true",
+          "url_options": {
+            "method": "GET",
+            "data": ""
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "timestamp",
+              "text": "Time",
+              "type": "timestamp"
+            },
+            {
+              "selector": "device_id",
+              "text": "Device",
+              "type": "string"
+            },
+            {
+              "selector": "metric_name",
+              "text": "Metric",
+              "type": "string"
+            },
+            {
+              "selector": "value",
+              "text": "Value",
+              "type": "number"
+            },
+            {
+              "selector": "baseline_median",
+              "text": "Baseline",
+              "type": "number"
+            },
+            {
+              "selector": "direction",
+              "text": "Direction",
+              "type": "string"
+            },
+            {
+              "selector": "anomaly_score",
+              "text": "Score",
+              "type": "number"
+            }
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "row",
+      "id": 11,
+      "title": "Device health (Zabbix) - pick a group and devices above",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "id": 12,
+      "title": "Availability",
+      "description": "1 = reachable, 0 = down (Zabbix ICMP ping)",
+      "datasource": {
+        "type": "alexanderzobnin-zabbix-datasource",
+        "uid": "zabbix"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "alexanderzobnin-zabbix-datasource",
+            "uid": "zabbix"
+          },
+          "queryType": "0",
+          "group": {
+            "filter": "$group"
+          },
+          "host": {
+            "filter": "$host"
+          },
+          "application": {
+            "filter": ""
+          },
+          "itemTag": {
+            "filter": ""
+          },
+          "item": {
+            "filter": "/ICMP ping/"
+          },
+          "functions": [],
+          "options": {
+            "showDisabledItems": false
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 13,
+      "title": "Latency",
+      "description": "Round-trip time from Zabbix ICMP checks",
+      "datasource": {
+        "type": "alexanderzobnin-zabbix-datasource",
+        "uid": "zabbix"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 23,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "alexanderzobnin-zabbix-datasource",
+            "uid": "zabbix"
+          },
+          "queryType": "0",
+          "group": {
+            "filter": "$group"
+          },
+          "host": {
+            "filter": "$host"
+          },
+          "application": {
+            "filter": ""
+          },
+          "itemTag": {
+            "filter": ""
+          },
+          "item": {
+            "filter": "/ICMP response time/"
+          },
+          "functions": [],
+          "options": {
+            "showDisabledItems": false
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 14,
+      "title": "Packet loss",
+      "description": "ICMP packet loss reported by Zabbix",
+      "datasource": {
+        "type": "alexanderzobnin-zabbix-datasource",
+        "uid": "zabbix"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 23,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "alexanderzobnin-zabbix-datasource",
+            "uid": "zabbix"
+          },
+          "queryType": "0",
+          "group": {
+            "filter": "$group"
+          },
+          "host": {
+            "filter": "$host"
+          },
+          "application": {
+            "filter": ""
+          },
+          "itemTag": {
+            "filter": ""
+          },
+          "item": {
+            "filter": "/ICMP loss/"
+          },
+          "functions": [],
+          "options": {
+            "showDisabledItems": false
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

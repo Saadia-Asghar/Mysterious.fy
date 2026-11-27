@@ -1,0 +1,17 @@
+{
+  "devices": [
+    {
+      "device_id": "SVC-001",
+      "name": "Lab test service",
+      "profile_id": "test_service_basic",
+      "organization_id": "LAB",
+      "site_id": "LAB-SITE",
+      "zone_id": "BENCH",
+      "management_address": "http://127.0.0.1:9100",
+      "monitoring_address": "http://host.docker.internal:9100",
+      "responsible_team": "network_team",
+      "automation_policy": "require_approval"
+    }
+  ],
+  "topology": []
+}
